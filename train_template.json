@@ -1,0 +1,10 @@
+{
+    "HammerCleanup_D0": {
+        "name": "hammer_d0",
+        "dataset_path": "/path/to/dataset",
+        "devices": {
+            "delta": "cuda:0",
+            "cs": "cuda:1"
+        }
+    }
+}
