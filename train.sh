@@ -3,8 +3,9 @@
 # 检查参数
 if [ $# -lt 1 ]; then
     echo "使用方法:"
-    echo "运行训练: ./train.sh <task_name>"
+    echo "运行训练: ./train.sh <task_name> [-wow]"
     echo "停止训练: ./train.sh stop"
+    echo "-wow: 可选参数，使用wow版本的模板"
     exit 1
 fi
 
@@ -25,13 +26,20 @@ if [ "$1" == "stop" ]; then
 fi
 
 # 检查运行训练的参数
-if [ $# -ne 1 ]; then
-    echo "运行训练需要一个参数: ./train.sh <task_name>"
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+    echo "运行训练需要1-2个参数: ./train.sh <task_name> [-wow]"
     echo "例如: ./train.sh HammerCleanup_D0"
+    echo "或: ./train.sh HammerCleanup_D0 -wow"
     exit 1
 fi
 
 task_name=$1
+use_wow=false
+
+# 检查是否使用wow选项
+if [ $# -eq 2 ] && [ "$2" == "-wow" ]; then
+    use_wow=true
+fi
 
 # 使用 jq 工具来精确提取配置
 if ! command -v jq &> /dev/null; then
@@ -51,7 +59,17 @@ if [ -z "$name" ] || [ -z "$dataset_path" ] || [ -z "$delta_device" ] || [ -z "$
     exit 1
 fi
 
+# 设置任务模板
+if [ "$use_wow" = true ]; then
+    delta_template="mimicgen_hybrid_wow_template"
+    cs_template="mimicgen_cs_hybrid_wow_template"
+else
+    delta_template="mimicgen_hybrid_template"
+    cs_template="mimicgen_cs_hybrid_template"
+fi
+
 echo "运行训练任务: $task_name"
+echo "使用模板: $delta_template (delta), $cs_template (cs)"
 echo "Name: $name"
 echo "Dataset path: $dataset_path"
 echo "Delta device: $delta_device"
@@ -65,6 +83,7 @@ mkdir -p "$log_dir"
 echo "启动 delta 模型训练..."
 nohup python train.py --config-dir=./diffusion_policy/config \
     --config-name=train_diffusion_transformer_hybrid_workspace.yaml \
+    task="$delta_template" \
     training.seed=42 training.device="$delta_device" \
     task.name="$name" task.task_name="$task_name" \
     task.dataset_path="$dataset_path" \
@@ -74,7 +93,7 @@ nohup python train.py --config-dir=./diffusion_policy/config \
 echo "启动 cs 模型训练..."
 nohup python train.py --config-dir=./diffusion_policy/config \
     --config-name=train_diffusion_transformer_hybrid_workspace.yaml \
-    task=mimicgen_cs_hybrid_template \
+    task="$cs_template" \
     training.seed=42 training.device="$cs_device" \
     task.name="${name}_cs" task.task_name="$task_name" \
     task.dataset_path="$dataset_path" \
