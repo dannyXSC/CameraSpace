@@ -300,6 +300,11 @@ def _convert_actions(
             actions = raw_actions.reshape(-1, 20)
     return actions
 
+def _convert_pose(pose, camera_mat_inv):
+    camera_pose = pose @ camera_mat_inv
+    # n 4 4 -> n 16
+    return camera_pose.reshape(-1, 16).astype(np.float32)
+    
 
 def _convert_robomimic_to_replay(
     store,
@@ -400,7 +405,7 @@ def _convert_robomimic_to_replay(
             elif key == "eef_pose":
                 # n 4 4 -> n 16
                 assert this_data.shape == (n_steps, 4, 4)
-                this_data = this_data.reshape(n_steps, 16)
+                this_data = _convert_pose(this_data, camera_mat_inv)
                 assert this_data.shape == (n_steps,) + tuple(
                     shape_meta["obs"][key]["shape"]
                 )
