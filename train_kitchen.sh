@@ -11,22 +11,22 @@ mkdir -p "$log_dir"
 #########################
 
 # Run the first Python training script in the background with nohup, outputting to log/${name}/output1.log
-nohup python train.py --config-dir=./diffusion_policy/config \
+python train.py --config-dir=./diffusion_policy/config \
     --config-name=train_diffusion_transformer_hybrid_workspace.yaml \
     training.seed=42 training.device=cuda:5 \
     task.name="$name" task.task_name="$task_name" \
     task.dataset_path="$dataset_path" \
-    hydra.run.dir='data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}' > "$log_dir/output1.log" 2>&1 &
+    hydra.run.dir='data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
 
-# Run the second Python training script in the background with nohup, outputting to log/${name}/output2.log
-nohup python train.py --config-dir=./diffusion_policy/config \
-    --config-name=train_diffusion_transformer_hybrid_workspace.yaml \
-    task=mimicgen_cs_hybrid_template \
-    training.seed=42 training.device=cuda:6 \
-    task.name="${name}_cs" task.task_name="$task_name" \
-    task.dataset_path="$dataset_path" \
-    hydra.run.dir='data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}' > "$log_dir/output2.log" 2>&1 &
+# # Run the second Python training script in the background with nohup, outputting to log/${name}/output2.log
+# nohup python train.py --config-dir=./diffusion_policy/config \
+#     --config-name=train_diffusion_transformer_hybrid_workspace.yaml \
+#     task=mimicgen_cs_hybrid_template \
+#     training.seed=42 training.device=cuda:6 \
+#     task.name="${name}_cs" task.task_name="$task_name" \
+#     task.dataset_path="$dataset_path" \
+#     hydra.run.dir='data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}' > "$log_dir/output2.log" 2>&1 &
 
 # Wait for all background jobs to finish
-wait
-echo "All tasks completed!"
+# wait
+# echo "All tasks completed!"

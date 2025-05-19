@@ -1,25 +1,25 @@
-name: h2r_total
+name: h2r_push_box
 
 image_shape: [3, 240, 426]
 base_dataset_path: &base_dataset_path /data1/dataset
 dataset_path_list: &dataset_path_list
-  - grab_both_cubes_v1
-  - grab_cube2_v1
-  - grab_cup_v1
-  - grab_pencil1_v1
-  - grab_pencil2_v1
-  - grab_pencil_v1
-  - grab_to_plate1_and_back_v1
-  - grab_to_plate1_v1
-  - grab_to_plate2_and_back_v1
-  - grab_to_plate2_and_pull_v1
-  - grab_to_plate2_v1
-  - grab_two_cubes2_v1
-  - pull_plate_v1
+  # - grab_both_cubes_v1
+  # - grab_cube2_v1
+  # - grab_cup_v1
+  # - grab_pencil1_v1
+  # - grab_pencil2_v1
+  # - grab_pencil_v1
+  # - grab_to_plate1_and_back_v1
+  # - grab_to_plate1_v1
+  # - grab_to_plate2_and_back_v1
+  # - grab_to_plate2_and_pull_v1
+  # - grab_to_plate2_v1
+  # - grab_two_cubes2_v1
+  # - pull_plate_v1
   - push_box_common_v1
   - push_box_random_v1
   - push_box_two_v1
-  - push_plate_v1
+  # - push_plate_v1
 
 shape_meta: &shape_meta
   # acceptable types: rgb, low_dim
@@ -28,9 +28,6 @@ shape_meta: &shape_meta
     #   shape: ${task.image_shape}
     #   type: rgb
     robot:
-      shape: ${task.image_shape}
-      type: rgb
-    condition:
       shape: ${task.image_shape}
       type: rgb
     robot0_eef_pos:

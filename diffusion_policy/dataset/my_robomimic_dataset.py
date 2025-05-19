@@ -98,7 +98,7 @@ class RobomimicReplayImageDataset(BaseImageDataset):
 
         replay_buffer = None
         if use_cache:
-            cache_zarr_path = dataset_path + "_cs.zarr.zip"
+            cache_zarr_path = dataset_path + "_cs_v2.zarr.zip"
             cache_lock_path = cache_zarr_path + ".lock"
             print("Acquiring lock on cache.")
             with FileLock(cache_lock_path):
@@ -374,15 +374,18 @@ def _convert_robomimic_to_replay(
 
         # save lowdim data
         for key in tqdm(lowdim_keys + ["action"], desc="Loading lowdim data"):
-            data_key = "obs/" + key
-            if key == "action":
+            if key == "eef_pose":
+                data_key = "cs_info/" + key
+            elif key == "action":
                 data_key = "actions"
+            else:
+                data_key = "obs/" + key
+            
             this_data = list()
             for i in range(len(demos)):
                 demo = demos[f"demo_{i}"]
                 this_data.append(demo[data_key][:].astype(np.float32))
             this_data = np.concatenate(this_data, axis=0)
-
             if key == "action":
                 this_data = _convert_actions(
                     raw_actions=this_data,
@@ -393,6 +396,13 @@ def _convert_robomimic_to_replay(
                 )
                 assert this_data.shape == (n_steps,) + tuple(
                     shape_meta["action"]["shape"]
+                )
+            elif key == "eef_pose":
+                # n 4 4 -> n 16
+                assert this_data.shape == (n_steps, 4, 4)
+                this_data = this_data.reshape(n_steps, 16)
+                assert this_data.shape == (n_steps,) + tuple(
+                    shape_meta["obs"][key]["shape"]
                 )
             else:
                 assert this_data.shape == (n_steps,) + tuple(

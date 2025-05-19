@@ -3,9 +3,10 @@
 # 检查参数
 if [ $# -lt 1 ]; then
     echo "使用方法:"
-    echo "运行训练: ./train.sh <task_name> [-wow]"
+    echo "运行训练: ./train.sh <task_name> [-wow|-wop]"
     echo "停止训练: ./train.sh stop"
     echo "-wow: 可选参数，使用wow版本的模板"
+    echo "-wop: 可选参数，使用wop版本的模板"
     exit 1
 fi
 
@@ -27,18 +28,28 @@ fi
 
 # 检查运行训练的参数
 if [ $# -lt 1 ] || [ $# -gt 2 ]; then
-    echo "运行训练需要1-2个参数: ./train.sh <task_name> [-wow]"
+    echo "运行训练需要1-2个参数: ./train.sh <task_name> [-wow|-wop]"
     echo "例如: ./train.sh HammerCleanup_D0"
     echo "或: ./train.sh HammerCleanup_D0 -wow"
+    echo "或: ./train.sh HammerCleanup_D0 -wop"
     exit 1
 fi
 
 task_name=$1
 use_wow=false
+use_wop=false
 
-# 检查是否使用wow选项
-if [ $# -eq 2 ] && [ "$2" == "-wow" ]; then
-    use_wow=true
+# 检查是否使用wow或wop选项
+if [ $# -eq 2 ]; then
+    if [ "$2" == "-wow" ]; then
+        use_wow=true
+    elif [ "$2" == "-wop" ]; then
+        use_wop=true
+    else
+        echo "错误：无效的选项 $2"
+        echo "支持的选项: -wow, -wop"
+        exit 1
+    fi
 fi
 
 # 使用 jq 工具来精确提取配置
@@ -63,6 +74,9 @@ fi
 if [ "$use_wow" = true ]; then
     delta_template="mimicgen_hybrid_wow_template"
     cs_template="mimicgen_cs_hybrid_wow_template"
+elif [ "$use_wop" = true ]; then
+    delta_template="mimicgen_hybrid_wop_template"
+    cs_template="mimicgen_cs_hybrid_wop_template"
 else
     delta_template="mimicgen_hybrid_template"
     cs_template="mimicgen_cs_hybrid_template"

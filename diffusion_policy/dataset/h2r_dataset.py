@@ -407,7 +407,7 @@ def _convert_h2r_to_replay(
         except Exception as e:
             return False
 
-    with tqdm(total=n_steps * 2, desc="Loading image data", mininterval=1.0) as pbar:
+    with tqdm(total=n_steps * 3, desc="Loading image data", mininterval=1.0) as pbar:
         with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
             futures = set()
             # shape here
@@ -425,6 +425,13 @@ def _convert_h2r_to_replay(
             )
             robot_arr = data_group.require_dataset(
                 name="robot",
+                shape=(n_steps, h, w, c),
+                chunks=(1, h, w, c),
+                compressor=this_compressor,
+                dtype=np.uint8,
+            )
+            cond_arr = data_group.require_dataset(
+                name="condition",
                 shape=(n_steps, h, w, c),
                 chunks=(1, h, w, c),
                 compressor=this_compressor,
@@ -458,6 +465,11 @@ def _convert_h2r_to_replay(
                         futures.add(
                             executor.submit(
                                 img_copy, robot_arr, zarr_idx, robot_video, hdf5_idx
+                            )
+                        )
+                        futures.add(
+                            executor.submit(
+                                img_copy, cond_arr, zarr_idx, robot_video, robot_video.shape[0] -1
                             )
                         )
             completed, futures = concurrent.futures.wait(futures)
