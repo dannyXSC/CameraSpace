@@ -5,6 +5,8 @@ import gym
 from gym import spaces
 from omegaconf import OmegaConf
 from robomimic.envs.env_robosuite import EnvRobosuite
+from mimicgen.env_interfaces.robosuite import RobosuiteInterface
+from diffusion_policy.dataset.my_robomimic_dataset import get_camera_extrinsic_matrix, _convert_pose
 
 class RobomimicImageWrapper(gym.Env):
     def __init__(self, 
@@ -15,6 +17,8 @@ class RobomimicImageWrapper(gym.Env):
         ):
 
         self.env = env
+        self.interface = RobosuiteInterface(env.base_env)
+        self.camera_mat_inv = np.linalg.inv(get_camera_extrinsic_matrix(env.env.sim, "agentview"))
         self.render_obs_key = render_obs_key
         self.init_state = init_state
         self.seed_state_map = dict()
@@ -46,6 +50,8 @@ class RobomimicImageWrapper(gym.Env):
             elif key.endswith('pos'):
                 # better range?
                 min_value, max_value = -1, 1
+            elif key.endswith('eef_pose'):
+                continue
             else:
                 raise RuntimeError(f"Unsupported type {key}")
             
@@ -64,10 +70,10 @@ class RobomimicImageWrapper(gym.Env):
             raw_obs = self.env.get_observation()
         
         self.render_cache = raw_obs[self.render_obs_key]
-
         obs = dict()
         for key in self.observation_space.keys():
             obs[key] = raw_obs[key]
+        obs["eef_pose"] = _convert_pose(self.interface.get_robot_eef_pose(), self.camera_mat_inv)
         return obs
 
     def seed(self, seed=None):

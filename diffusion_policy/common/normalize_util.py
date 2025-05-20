@@ -221,3 +221,72 @@ def array_to_stats(arr: np.ndarray):
         'std': np.std(arr, axis=0)
     }
     return stat
+
+def robomimic_pose_normalizer_from_stat(stat):
+    result = dict_apply_split(
+        stat, lambda x: {
+            'pos': x[...,[3,7,11]],
+            'other': np.concatenate([
+                x[...,:3],
+                x[...,4:7],
+                x[...,8:11],
+                x[...,12:]
+            ], axis=-1)
+    })
+
+    def get_pos_param_info(stat, output_max=1, output_min=-1, range_eps=1e-7):
+        # -1, 1 normalization
+        input_max = stat['max']
+        input_min = stat['min']
+        input_range = input_max - input_min
+        ignore_dim = input_range < range_eps
+        input_range[ignore_dim] = output_max - output_min
+        scale = (output_max - output_min) / input_range
+        offset = output_min - scale * input_min
+        offset[ignore_dim] = (output_max + output_min) / 2 - input_min[ignore_dim]
+
+        return {'scale': scale, 'offset': offset}, stat
+
+    def get_other_param_info(stat):
+        example = stat['max']
+        scale = np.ones_like(example)
+        offset = np.zeros_like(example)
+        info = {
+            'max': np.ones_like(example),
+            'min': np.full_like(example, -1),
+            'mean': np.zeros_like(example),
+            'std': np.ones_like(example)
+        }
+        return {'scale': scale, 'offset': offset}, info
+
+    pos_param, pos_info = get_pos_param_info(result['pos'])
+    other_param, other_info = get_other_param_info(result['other'])
+
+    # 按照result中定义的顺序重新组合参数
+    def reconstruct_params(x):
+        # 将other_param分成四部分
+        other_parts = np.split(x[0], [3, 6, 9])
+        # 按照原始顺序重新组合
+        return np.concatenate([
+            other_parts[0],  # 0-3
+            x[1][0:1],      # 3
+            other_parts[1],  # 4-7
+            x[1][1:2],      # 7
+            other_parts[2],  # 8-11
+            x[1][2:3],      # 11
+            other_parts[3]   # 12+
+        ], axis=-1)
+
+    param = dict_apply_reduce(
+        [other_param, pos_param], 
+        reconstruct_params)
+    info = dict_apply_reduce(
+        [other_info, pos_info], 
+        reconstruct_params)
+
+    return SingleFieldLinearNormalizer.create_manual(
+        scale=param['scale'],
+        offset=param['offset'],
+        input_stats_dict=info
+    )
+    
