@@ -51,7 +51,7 @@ class RobomimicImageWrapper(gym.Env):
                 # better range?
                 min_value, max_value = -1, 1
             elif key.endswith('eef_pose'):
-                continue
+                min_value, max_value = -1, 1
             else:
                 raise RuntimeError(f"Unsupported type {key}")
             
@@ -68,12 +68,12 @@ class RobomimicImageWrapper(gym.Env):
     def get_observation(self, raw_obs=None):
         if raw_obs is None:
             raw_obs = self.env.get_observation()
+        raw_obs["eef_pose"] = _convert_pose(self.interface.get_robot_eef_pose(), self.camera_mat_inv)
         
         self.render_cache = raw_obs[self.render_obs_key]
         obs = dict()
         for key in self.observation_space.keys():
             obs[key] = raw_obs[key]
-        obs["eef_pose"] = _convert_pose(self.interface.get_robot_eef_pose(), self.camera_mat_inv)
         return obs
 
     def seed(self, seed=None):
