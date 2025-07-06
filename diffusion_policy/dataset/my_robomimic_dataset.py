@@ -23,7 +23,7 @@ from diffusion_policy.model.common.normalizer import (
 from diffusion_policy.model.common.rotation_transformer import RotationTransformer
 from diffusion_policy.codecs.imagecodecs_numcodecs import register_codecs, Jpeg2k
 from diffusion_policy.common.replay_buffer import ReplayBuffer
-from diffusion_policy.common.sampler import SequenceSampler, get_val_mask
+from diffusion_policy.common.sampler import SequenceSampler, get_val_mask, downsample_mask
 from diffusion_policy.common.normalize_util import (
     robomimic_abs_action_only_normalizer_from_stat,
     robomimic_abs_action_only_dual_arm_normalizer_from_stat,
@@ -92,6 +92,8 @@ class RobomimicReplayImageDataset(BaseImageDataset):
         use_cache=False,
         seed=42,
         val_ratio=0.0,
+        max_samples=None,
+        if_mask=False,
     ):
         rotation_transformer = RotationTransformer(
             from_rep="matrix", to_rep=rotation_rep
@@ -114,6 +116,7 @@ class RobomimicReplayImageDataset(BaseImageDataset):
                             dataset_path=dataset_path,
                             abs_action=abs_action,
                             rotation_transformer=rotation_transformer,
+                            if_mask=if_mask,
                         )
                         print("Saving cache to disk.")
                         with zarr.ZipStore(cache_zarr_path) as zip_store:
@@ -135,6 +138,7 @@ class RobomimicReplayImageDataset(BaseImageDataset):
                 dataset_path=dataset_path,
                 abs_action=abs_action,
                 rotation_transformer=rotation_transformer,
+                if_mask=if_mask,
             )
 
         rgb_keys = list()
@@ -147,9 +151,6 @@ class RobomimicReplayImageDataset(BaseImageDataset):
             elif type == "low_dim":
                 lowdim_keys.append(key)
 
-        # for key in rgb_keys:
-        #     replay_buffer[key].compressor.numthreads=1
-
         key_first_k = dict()
         if n_obs_steps is not None:
             # only take first k obs from images
@@ -160,6 +161,8 @@ class RobomimicReplayImageDataset(BaseImageDataset):
             n_episodes=replay_buffer.n_episodes, val_ratio=val_ratio, seed=seed
         )
         train_mask = ~val_mask
+        train_mask = downsample_mask(train_mask, max_n=max_samples, seed=seed)
+        
         sampler = SequenceSampler(
             replay_buffer=replay_buffer,
             sequence_length=horizon,
@@ -177,6 +180,7 @@ class RobomimicReplayImageDataset(BaseImageDataset):
         self.abs_action = abs_action
         self.n_obs_steps = n_obs_steps
         self.train_mask = train_mask
+        self.val_mask = val_mask
         self.horizon = horizon
         self.pad_before = pad_before
         self.pad_after = pad_after
@@ -189,9 +193,9 @@ class RobomimicReplayImageDataset(BaseImageDataset):
             sequence_length=self.horizon,
             pad_before=self.pad_before,
             pad_after=self.pad_after,
-            episode_mask=~self.train_mask,
+            episode_mask=self.val_mask,
         )
-        val_set.train_mask = ~self.train_mask
+        val_set.train_mask = self.val_mask
         return val_set
 
     def get_normalizer(self, **kwargs) -> LinearNormalizer:
@@ -238,7 +242,7 @@ class RobomimicReplayImageDataset(BaseImageDataset):
         return normalizer
 
     def get_all_actions(self) -> torch.Tensor:
-        return torch.from_numpy(self.replay_buffer["action"])
+        return torch.from_numpy(self.replay_buffer["action"][:])
 
     def __len__(self):
         return len(self.sampler)
@@ -317,6 +321,7 @@ def _convert_robomimic_to_replay(
     rotation_transformer,
     n_workers=None,
     max_inflight_tasks=None,
+    if_mask=False,
 ):
     if n_workers is None:
         n_workers = multiprocessing.cpu_count()
@@ -433,7 +438,17 @@ def _convert_robomimic_to_replay(
                 return True
             except Exception as e:
                 return False
-
+        def img_copy_mask(zarr_arr, zarr_idx, hdf5_arr, mask_arr, hdf5_idx):
+            try:
+                frame = hdf5_arr[hdf5_idx][()]
+                mask = mask_arr[hdf5_idx][()]
+                masked_frame = frame * mask
+                zarr_arr[zarr_idx] = masked_frame
+                # make sure we can successfully decode
+                _ = zarr_arr[zarr_idx]
+                return True
+            except Exception as e:
+                return False
         with tqdm(
             total=n_steps * len(rgb_keys), desc="Loading image data", mininterval=1.0
         ) as pbar:
@@ -457,6 +472,10 @@ def _convert_robomimic_to_replay(
                     for episode_idx in range(len(demos)):
                         demo = demos[f"demo_{episode_idx}"]
                         hdf5_arr = demo["obs"][key]
+                        if if_mask and key == "agentview_image":
+                            mask_arr = demo["foreground_info"]["mask"]
+                        else:
+                            mask_arr = None
                         for hdf5_idx in range(hdf5_arr.shape[0]):
                             if len(futures) >= max_inflight_tasks:
                                 # limit number of inflight tasks
@@ -470,11 +489,18 @@ def _convert_robomimic_to_replay(
                                 pbar.update(len(completed))
 
                             zarr_idx = episode_starts[episode_idx] + hdf5_idx
-                            futures.add(
-                                executor.submit(
-                                    img_copy, img_arr, zarr_idx, hdf5_arr, hdf5_idx
+                            if if_mask and key == "agentview_image":
+                                futures.add(
+                                    executor.submit(
+                                        img_copy_mask, img_arr, zarr_idx, hdf5_arr, mask_arr, hdf5_idx
                                 )
                             )
+                            else:
+                                futures.add(
+                                    executor.submit(
+                                        img_copy, img_arr, zarr_idx, hdf5_arr, hdf5_idx
+                                    )
+                                )
                 completed, futures = concurrent.futures.wait(futures)
                 for f in completed:
                     if not f.result():

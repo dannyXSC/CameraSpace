@@ -3,8 +3,8 @@
 # Licensed under the NVIDIA Source Code License [see LICENSE for details].
 
 """
-Simpler object cleanup task (inspired by BUDS Hammer Place, see https://github.com/ARISE-Initiative/robosuite-task-zoo) 
-where a single object needs to be packed away into a drawer. The default task is to cleanup a 
+Simpler object cleanup task (inspired by BUDS Hammer Place, see https://github.com/ARISE-Initiative/robosuite-task-zoo)
+where a single object needs to be packed away into a drawer. The default task is to cleanup a
 particular mug.
 """
 import os
@@ -13,17 +13,29 @@ from collections import OrderedDict
 from copy import deepcopy
 import numpy as np
 
-from robosuite.utils.mjcf_utils import CustomMaterial, add_material, find_elements, string_to_array
+from robosuite.utils.mjcf_utils import (
+    CustomMaterial,
+    add_material,
+    find_elements,
+    string_to_array,
+)
 
 import robosuite.utils.transform_utils as T
 
 from robosuite.models.arenas import TableArena
 from robosuite.models.tasks import ManipulationTask
-from robosuite.utils.placement_samplers import SequentialCompositeSampler, UniformRandomSampler
+from robosuite.utils.placement_samplers import (
+    SequentialCompositeSampler,
+    UniformRandomSampler,
+)
 from robosuite.utils.observables import Observable, sensor
 
 import mimicgen
-from mimicgen.models.robosuite.objects import BlenderObject, DrawerObject, LongDrawerObject
+from mimicgen.models.robosuite.objects import (
+    BlenderObject,
+    DrawerObject,
+    LongDrawerObject,
+)
 from mimicgen.envs.robosuite.single_arm_env_mg import SingleArmEnv_MG
 
 
@@ -152,7 +164,7 @@ class MugCleanup(SingleArmEnv_MG):
         gripper_types="default",
         initialization_noise="default",
         table_full_size=(0.8, 0.8, 0.05),
-        table_friction=(1., 5e-3, 1e-4),
+        table_friction=(1.0, 5e-3, 1e-4),
         use_camera_obs=True,
         use_object_obs=True,
         reward_scale=1.0,
@@ -235,11 +247,13 @@ class MugCleanup(SingleArmEnv_MG):
         Returns:
             float: reward value
         """
-        reward = 0.
+        reward = 0.0
 
         # sparse completion reward
         if self._check_success():
             reward = 1.0
+        # else:
+        # reward = self._get_reward()
 
         # use a shaping reward
         if self.reward_shaping:
@@ -252,7 +266,9 @@ class MugCleanup(SingleArmEnv_MG):
 
     def _set_robot(self):
         # Adjust base pose accordingly
-        xpos = self.robots[0].robot_model.base_xpos_offset["table"](self.table_full_size[0])
+        xpos = self.robots[0].robot_model.base_xpos_offset["table"](
+            self.table_full_size[0]
+        )
         self.robots[0].robot_model.set_base_xpos(xpos)
 
     def _load_model(self):
@@ -277,10 +293,26 @@ class MugCleanup(SingleArmEnv_MG):
         self._add_agentview_full_camera(mujoco_arena)
 
         # Set default agentview camera to be "agentview_full" (and send old agentview camera to agentview_full)
-        old_agentview_camera = find_elements(root=mujoco_arena.worldbody, tags="camera", attribs={"name": "agentview"}, return_first=True)
-        old_agentview_camera_pose = (old_agentview_camera.get("pos"), old_agentview_camera.get("quat"))
-        old_agentview_full_camera = find_elements(root=mujoco_arena.worldbody, tags="camera", attribs={"name": "agentview_full"}, return_first=True)
-        old_agentview_full_camera_pose = (old_agentview_full_camera.get("pos"), old_agentview_full_camera.get("quat"))
+        old_agentview_camera = find_elements(
+            root=mujoco_arena.worldbody,
+            tags="camera",
+            attribs={"name": "agentview"},
+            return_first=True,
+        )
+        old_agentview_camera_pose = (
+            old_agentview_camera.get("pos"),
+            old_agentview_camera.get("quat"),
+        )
+        old_agentview_full_camera = find_elements(
+            root=mujoco_arena.worldbody,
+            tags="camera",
+            attribs={"name": "agentview_full"},
+            return_first=True,
+        )
+        old_agentview_full_camera_pose = (
+            old_agentview_full_camera.get("pos"),
+            old_agentview_full_camera.get("quat"),
+        )
         mujoco_arena.set_camera(
             camera_name="agentview",
             pos=string_to_array(old_agentview_full_camera_pose[0]),
@@ -309,7 +341,7 @@ class MugCleanup(SingleArmEnv_MG):
         )
         # HACK: merge in mug afterwards because its number of geoms may change
         #       and this may break the generate_id_mappings function in task.py
-        self.model.merge_objects([self.cleanup_object]) # add cleanup object to model 
+        self.model.merge_objects([self.cleanup_object])  # add cleanup object to model
 
     def _get_drawer_model(self):
         """
@@ -317,14 +349,8 @@ class MugCleanup(SingleArmEnv_MG):
         """
 
         # Create drawer object
-        tex_attrib = {
-            "type": "cube"
-        }
-        mat_attrib = {
-            "texrepeat": "1 1",
-            "specular": "0.4",
-            "shininess": "0.1"
-        }
+        tex_attrib = {"type": "cube"}
+        mat_attrib = {"texrepeat": "1 1", "specular": "0.4", "shininess": "0.1"}
         redwood = CustomMaterial(
             texture="WoodRed",
             tex_name="redwood",
@@ -344,14 +370,16 @@ class MugCleanup(SingleArmEnv_MG):
             tex_name="lightwood",
             mat_name="MatLightWood",
             tex_attrib={"type": "cube"},
-            mat_attrib={"texrepeat": "3 3", "specular": "0.4","shininess": "0.1"}
+            mat_attrib={"texrepeat": "3 3", "specular": "0.4", "shininess": "0.1"},
         )
         self.drawer = DrawerObject(name="DrawerObject")
         obj_body = self.drawer
         for material in [redwood, ceramic, lightwood]:
-            tex_element, mat_element, _, used = add_material(root=obj_body.worldbody,
-                                                             naming_prefix=obj_body.naming_prefix,
-                                                             custom_material=deepcopy(material))
+            tex_element, mat_element, _, used = add_material(
+                root=obj_body.worldbody,
+                naming_prefix=obj_body.naming_prefix,
+                custom_material=deepcopy(material),
+            )
             obj_body.asset.append(tex_element)
             obj_body.asset.append(mat_element)
 
@@ -359,8 +387,12 @@ class MugCleanup(SingleArmEnv_MG):
         """
         Allow subclasses to override which object to pack into drawer - should load into @self.cleanup_object.
         """
-        base_mjcf_path = os.path.join(mimicgen.__path__[0], "models/robosuite/assets/shapenet_core/mugs")
-        mjcf_path = os.path.join(base_mjcf_path, "{}/model.xml".format(self._shapenet_id))
+        base_mjcf_path = os.path.join(
+            mimicgen.__path__[0], "models/robosuite/assets/shapenet_core/mugs"
+        )
+        mjcf_path = os.path.join(
+            base_mjcf_path, "{}/model.xml".format(self._shapenet_id)
+        )
 
         self.cleanup_object = BlenderObject(
             name="cleanup_object",
@@ -387,15 +419,15 @@ class MugCleanup(SingleArmEnv_MG):
         """
         return dict(
             drawer=dict(
-                x=(0., 0.),
+                x=(0.0, 0.0),
                 y=(0.3, 0.3),
-                z_rot=(0., 0.),
+                z_rot=(0.0, 0.0),
                 reference=self.table_offset,
             ),
             object=dict(
                 x=(-0.15, 0.15),
                 y=(-0.25, -0.1),
-                z_rot=(0., 2. * np.pi),
+                z_rot=(0.0, 2.0 * np.pi),
                 reference=self.table_offset,
             ),
         )
@@ -411,7 +443,7 @@ class MugCleanup(SingleArmEnv_MG):
                 x_range=bounds["drawer"]["x"],
                 y_range=bounds["drawer"]["y"],
                 rotation=bounds["drawer"]["z_rot"],
-                rotation_axis='z',
+                rotation_axis="z",
                 ensure_object_boundary_in_range=False,
                 ensure_valid_placement=True,
                 reference_pos=bounds["drawer"]["reference"],
@@ -425,11 +457,11 @@ class MugCleanup(SingleArmEnv_MG):
                 x_range=bounds["object"]["x"],
                 y_range=bounds["object"]["y"],
                 rotation=bounds["object"]["z_rot"],
-                rotation_axis='z',
+                rotation_axis="z",
                 ensure_object_boundary_in_range=False,
                 ensure_valid_placement=True,
                 reference_pos=bounds["object"]["reference"],
-                z_offset=0.,
+                z_offset=0.0,
             )
         )
 
@@ -446,8 +478,12 @@ class MugCleanup(SingleArmEnv_MG):
             object=self.sim.model.body_name2id(self.cleanup_object.root_body),
             drawer=self.sim.model.body_name2id(self.drawer.root_body),
         )
-        self.drawer_qpos_addr = self.sim.model.get_joint_qpos_addr(self.drawer.joints[0])
-        self.drawer_bottom_geom_id = self.sim.model.geom_name2id("DrawerObject_drawer_bottom")
+        self.drawer_qpos_addr = self.sim.model.get_joint_qpos_addr(
+            self.drawer.joints[0]
+        )
+        self.drawer_bottom_geom_id = self.sim.model.geom_name2id(
+            "DrawerObject_drawer_bottom"
+        )
 
     def _reset_internal(self):
         """
@@ -467,15 +503,20 @@ class MugCleanup(SingleArmEnv_MG):
                     # object is fixture - set pose in model
                     body_id = self.sim.model.body_name2id(obj.root_body)
                     obj_pos_to_set = np.array(obj_pos)
-                    obj_pos_to_set[2] = 0.805 # hardcode z-value to make sure it lies on table surface
+                    obj_pos_to_set[2] = (
+                        0.805  # hardcode z-value to make sure it lies on table surface
+                    )
                     self.sim.model.body_pos[body_id] = obj_pos_to_set
                     self.sim.model.body_quat[body_id] = obj_quat
                 else:
                     # object has free joint - use it to set pose
-                    self.sim.data.set_joint_qpos(obj.joints[0], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
+                    self.sim.data.set_joint_qpos(
+                        obj.joints[0],
+                        np.concatenate([np.array(obj_pos), np.array(obj_quat)]),
+                    )
 
         # Drawer should start closed (0.) but can set to open (-0.135) for debugging.
-        self.sim.data.qpos[self.drawer_qpos_addr] = 0.
+        self.sim.data.qpos[self.drawer_qpos_addr] = 0.0
         # self.sim.data.qpos[self.drawer_qpos_addr] = -0.135
         self.sim.forward()
 
@@ -497,15 +538,25 @@ class MugCleanup(SingleArmEnv_MG):
             # for conversion to relative gripper frame
             @sensor(modality=modality)
             def world_pose_in_gripper(obs_cache):
-                return T.pose_inv(T.pose2mat((obs_cache[f"{pf}eef_pos"], obs_cache[f"{pf}eef_quat"]))) if\
-                    f"{pf}eef_pos" in obs_cache and f"{pf}eef_quat" in obs_cache else np.eye(4)
+                return (
+                    T.pose_inv(
+                        T.pose2mat(
+                            (obs_cache[f"{pf}eef_pos"], obs_cache[f"{pf}eef_quat"])
+                        )
+                    )
+                    if f"{pf}eef_pos" in obs_cache and f"{pf}eef_quat" in obs_cache
+                    else np.eye(4)
+                )
+
             sensors = [world_pose_in_gripper]
             names = ["world_pose_in_gripper"]
             actives = [False]
 
             # add ground-truth poses (absolute and relative to eef) for all objects
             for obj_name in self.obj_body_id:
-                obj_sensors, obj_sensor_names = self._create_obj_sensors(obj_name=obj_name, modality=modality)
+                obj_sensors, obj_sensor_names = self._create_obj_sensors(
+                    obj_name=obj_name, modality=modality
+                )
                 sensors += obj_sensors
                 names += obj_sensor_names
                 actives += [True] * len(obj_sensors)
@@ -514,6 +565,7 @@ class MugCleanup(SingleArmEnv_MG):
             @sensor(modality=modality)
             def drawer_joint_pos(obs_cache):
                 return np.array([self.sim.data.qpos[self.drawer_qpos_addr]])
+
             sensors += [drawer_joint_pos]
             names += ["drawer_joint_pos"]
             actives += [True]
@@ -552,27 +604,49 @@ class MugCleanup(SingleArmEnv_MG):
 
         @sensor(modality=modality)
         def obj_quat(obs_cache):
-            return T.convert_quat(self.sim.data.body_xquat[self.obj_body_id[obj_name]], to="xyzw")
+            return T.convert_quat(
+                self.sim.data.body_xquat[self.obj_body_id[obj_name]], to="xyzw"
+            )
 
         @sensor(modality=modality)
         def obj_to_eef_pos(obs_cache):
             # Immediately return default value if cache is empty
-            if any([name not in obs_cache for name in
-                    [f"{obj_name}_pos", f"{obj_name}_quat", "world_pose_in_gripper"]]):
+            if any(
+                [
+                    name not in obs_cache
+                    for name in [
+                        f"{obj_name}_pos",
+                        f"{obj_name}_quat",
+                        "world_pose_in_gripper",
+                    ]
+                ]
+            ):
                 return np.zeros(3)
-            obj_pose = T.pose2mat((obs_cache[f"{obj_name}_pos"], obs_cache[f"{obj_name}_quat"]))
-            rel_pose = T.pose_in_A_to_pose_in_B(obj_pose, obs_cache["world_pose_in_gripper"])
+            obj_pose = T.pose2mat(
+                (obs_cache[f"{obj_name}_pos"], obs_cache[f"{obj_name}_quat"])
+            )
+            rel_pose = T.pose_in_A_to_pose_in_B(
+                obj_pose, obs_cache["world_pose_in_gripper"]
+            )
             rel_pos, rel_quat = T.mat2pose(rel_pose)
             obs_cache[f"{obj_name}_to_{pf}eef_quat"] = rel_quat
             return rel_pos
 
         @sensor(modality=modality)
         def obj_to_eef_quat(obs_cache):
-            return obs_cache[f"{obj_name}_to_{pf}eef_quat"] if \
-                f"{obj_name}_to_{pf}eef_quat" in obs_cache else np.zeros(4)
+            return (
+                obs_cache[f"{obj_name}_to_{pf}eef_quat"]
+                if f"{obj_name}_to_{pf}eef_quat" in obs_cache
+                else np.zeros(4)
+            )
 
         sensors = [obj_pos, obj_quat, obj_to_eef_pos, obj_to_eef_quat]
-        names = [f"{obj_name}_pos", f"{obj_name}_quat", f"{obj_name}_to_{pf}eef_pos", f"{obj_name}_to_{pf}eef_quat"]
+        names = [
+            f"{obj_name}_pos",
+            f"{obj_name}_quat",
+            f"{obj_name}_to_{pf}eef_pos",
+            f"{obj_name}_to_{pf}eef_quat",
+        ]
 
         return sensors, names
 
@@ -590,14 +664,42 @@ class MugCleanup(SingleArmEnv_MG):
         # then take cosine dist (1 - dot-prod)
         obj_rot = self.sim.data.body_xmat[self.obj_body_id["object"]].reshape(3, 3)
         z_axis = obj_rot[:3, 2]
-        dist_to_z_axis = 1. - z_axis[2]
-        object_upright = (dist_to_z_axis < 1e-3)
+        dist_to_z_axis = 1.0 - z_axis[2]
+        object_upright = dist_to_z_axis < 1e-3
 
         # easy way to check for object in drawer - check if object in contact with bottom drawer geom
         drawer_bottom_geom = "DrawerObject_drawer_bottom"
         object_in_drawer = self.check_contact(drawer_bottom_geom, self.cleanup_object)
 
-        return (object_in_drawer and object_upright and drawer_closed)
+        return object_in_drawer and object_upright and drawer_closed
+
+    def _get_reward(self):
+        # check for closed drawer
+        drawer_closed = self.sim.data.qpos[self.drawer_qpos_addr] > -0.01
+
+        # check that object is upright (it shouldn't fall over in the drawer)
+
+        # check z-axis alignment by checking z unit-vector of obj pose and dot with (0, 0, 1)
+        # then take cosine dist (1 - dot-prod)
+        obj_rot = self.sim.data.body_xmat[self.obj_body_id["object"]].reshape(3, 3)
+        z_axis = obj_rot[:3, 2]
+        dist_to_z_axis = 1.0 - z_axis[2]
+        object_upright = dist_to_z_axis < 1e-3
+
+        # easy way to check for object in drawer - check if object in contact with bottom drawer geom
+        drawer_bottom_geom = "DrawerObject_drawer_bottom"
+        object_in_drawer = self.check_contact(drawer_bottom_geom, self.cleanup_object)
+
+        obj_pos = self.sim.data.body_xpos[self.obj_body_id["object"]]
+        obj_pos_z = obj_pos[2]
+        object_picked = obj_pos_z > 0.9
+
+        if object_in_drawer and object_upright and drawer_closed:
+            return 1.0
+        elif object_picked:
+            return 1.0
+        else:
+            return 0.0
 
     def visualize(self, vis_settings):
         """
@@ -613,11 +715,14 @@ class MugCleanup(SingleArmEnv_MG):
 
         # Color the gripper visualization site according to its distance to the cleanup object
         if vis_settings["grippers"]:
-            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.cleanup_object)
+            self._visualize_gripper_to_target(
+                gripper=self.robots[0].gripper, target=self.cleanup_object
+            )
 
 
 class MugCleanup_D0(MugCleanup):
     """Rename base class for convenience."""
+
     pass
 
 
@@ -625,18 +730,19 @@ class MugCleanup_D1(MugCleanup_D0):
     """
     Wider initialization for both drawer and object.
     """
+
     def _get_initial_placement_bounds(self):
         return dict(
             drawer=dict(
                 x=(-0.15, 0.05),
                 y=(0.25, 0.35),
-                z_rot=(-np.pi / 6., np.pi / 6.),
+                z_rot=(-np.pi / 6.0, np.pi / 6.0),
                 reference=self.table_offset,
             ),
             object=dict(
                 x=(-0.25, 0.15),
                 y=(-0.3, -0.15),
-                z_rot=(0., 2. * np.pi),
+                z_rot=(0.0, 2.0 * np.pi),
                 reference=self.table_offset,
             ),
         )
@@ -646,6 +752,7 @@ class MugCleanup_O1(MugCleanup_D0):
     """
     Use different mug.
     """
+
     def __init__(
         self,
         **kwargs,
@@ -661,34 +768,41 @@ class MugCleanup_O2(MugCleanup_D0):
     """
     Use a random mug on each episode reset.
     """
+
     def __init__(
         self,
         **kwargs,
     ):
         # list of tuples - (shapenet_id, shapenet_scale)
         self._assets = [
-            ("3143a4ac", 0.8),          # beige round mug
-            ("34ae0b61", 0.8),          # bronze mug with green inside
-            ("128ecbc1", 0.66666667),   # light blue round mug, thicker boundaries
-            ("d75af64a", 0.66666667),   # off-white cylindrical tapered mug
-            ("5fe74bab", 0.8),          # brown mug, thin boundaries
-            ("345d3e72", 0.66666667),   # black round mug
-            ("48e260a6", 0.66666667),   # red round mug 
-            ("8012f52d", 0.8),          # yellow round mug with bigger base 
-            ("b4ae56d6", 0.8),          # yellow cylindrical mug 
-            ("c2eacc52", 0.8),          # wooden cylindrical mug
-            ("e94e46bc", 0.8),          # dark blue cylindrical mug
-            ("fad118b3", 0.66666667),   # tall green cylindrical mug
+            ("3143a4ac", 0.8),  # beige round mug
+            ("34ae0b61", 0.8),  # bronze mug with green inside
+            ("128ecbc1", 0.66666667),  # light blue round mug, thicker boundaries
+            ("d75af64a", 0.66666667),  # off-white cylindrical tapered mug
+            ("5fe74bab", 0.8),  # brown mug, thin boundaries
+            ("345d3e72", 0.66666667),  # black round mug
+            ("48e260a6", 0.66666667),  # red round mug
+            ("8012f52d", 0.8),  # yellow round mug with bigger base
+            ("b4ae56d6", 0.8),  # yellow cylindrical mug
+            ("c2eacc52", 0.8),  # wooden cylindrical mug
+            ("e94e46bc", 0.8),  # dark blue cylindrical mug
+            ("fad118b3", 0.66666667),  # tall green cylindrical mug
         ]
-        self._base_mjcf_path = os.path.join(mimicgen.__path__[0], "models/robosuite/assets/shapenet_core/mugs")
-        super(MugCleanup_O2, self).__init__(shapenet_id=None, shapenet_scale=None, **kwargs)
+        self._base_mjcf_path = os.path.join(
+            mimicgen.__path__[0], "models/robosuite/assets/shapenet_core/mugs"
+        )
+        super(MugCleanup_O2, self).__init__(
+            shapenet_id=None, shapenet_scale=None, **kwargs
+        )
 
     def _get_object_model(self):
         """
         Allow subclasses to override which object to pack into drawer - should load into @self.cleanup_object.
         """
         self._shapenet_id, self._shapenet_scale = random.choice(self._assets)
-        mjcf_path = os.path.join(self._base_mjcf_path, "{}/model.xml".format(self._shapenet_id))
+        mjcf_path = os.path.join(
+            self._base_mjcf_path, "{}/model.xml".format(self._shapenet_id)
+        )
 
         self.cleanup_object = BlenderObject(
             name="cleanup_object",
@@ -701,3 +815,44 @@ class MugCleanup_O2(MugCleanup_D0):
             friction=(1, 1, 1),
             margin=0.001,
         )
+
+
+class MugCleanup_D0_StageReward(MugCleanup_D0):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def reward(self, action=None):
+        # print("drawer_qpos_addr", self.sim.data.qpos[self.drawer_qpos_addr])
+        drawer_open = self.sim.data.qpos[self.drawer_qpos_addr] < -0.03
+        
+        # check for closed drawer
+        drawer_closed = self.sim.data.qpos[self.drawer_qpos_addr] > -0.01
+
+        # check that object is upright (it shouldn't fall over in the drawer)
+
+        # check z-axis alignment by checking z unit-vector of obj pose and dot with (0, 0, 1)
+        # then take cosine dist (1 - dot-prod)
+        obj_rot = self.sim.data.body_xmat[self.obj_body_id["object"]].reshape(3, 3)
+        z_axis = obj_rot[:3, 2]
+        dist_to_z_axis = 1.0 - z_axis[2]
+        object_upright = dist_to_z_axis < 1e-3
+
+        # easy way to check for object in drawer - check if object in contact with bottom drawer geom
+        drawer_bottom_geom = "DrawerObject_drawer_bottom"
+        object_in_drawer = self.check_contact(drawer_bottom_geom, self.cleanup_object)
+
+        obj_pos = self.sim.data.body_xpos[self.obj_body_id["object"]]
+        obj_pos_z = obj_pos[2]
+        object_picked = obj_pos_z > 0.84
+        
+        # print("obj_pos_z", obj_pos_z)
+
+        # open
+        reward1 = 1.0 if drawer_open else 0.0
+        # grasp the mug
+        reward2 = 1.0 if object_picked else 0.0
+        # put the mug in the drawer
+        reward3 = 1.0 if (object_in_drawer and object_upright) else 0.0
+        # close the drawer
+        reward4 = 1.0 if (drawer_closed and object_in_drawer and object_upright) else 0.0
+        return [reward1, reward2, reward3, reward4]

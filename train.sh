@@ -83,7 +83,7 @@ elif [ "$use_wop" = true ]; then
     delta_template="mimicgen_hybrid_wop_template"
     cs_template="mimicgen_cs_hybrid_wop_template"
 elif [ "$use_wpose" = true ]; then
-    delta_template="mimicgen_hybrid_wpose_template"
+    delta_template="mimicgen_hybrid_template"
     cs_template="mimicgen_cs_hybrid_wpose_template"
 else
     delta_template="mimicgen_hybrid_template"
@@ -119,7 +119,7 @@ nohup python train.py --config-dir=./diffusion_policy/config \
     training.seed=42 training.device="$cs_device" \
     task.name="${name}_cs" task.task_name="$task_name" \
     task.dataset_path="$dataset_path" \
-    hydra.run.dir='data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}' > "$log_dir/cs.log" 2>&1 &
+    hydra.run.dir='data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}_cs' > "$log_dir/cs.log" 2>&1 &
 
 echo "训练任务已在后台启动。"
 echo "你可以通过以下命令查看任务状态："

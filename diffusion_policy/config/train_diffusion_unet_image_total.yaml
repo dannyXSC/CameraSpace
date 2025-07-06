@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - task: h2r
+  - task: h2r_grab
 
 name: train_diffusion_unet_hybrid
 _target_: diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace.TrainDiffusionUnetHybridWorkspace
@@ -9,9 +9,9 @@ task_name: ${task.name}
 shape_meta: ${task.shape_meta}
 exp_name: "default"
 
-horizon: 16
+horizon: 8
 n_obs_steps: 1
-n_action_steps: 8
+n_action_steps: 4
 n_latency_steps: 0
 dataset_obs_steps: ${n_obs_steps}
 past_action_visible: False
@@ -19,7 +19,7 @@ keypoint_visible_rate: 1.0
 obs_as_global_cond: True
 
 policy:
-  _target_: diffusion_policy.policy.diffusion_unet_hybrid_image_policy.DiffusionUnetHybridImagePolicy
+  _target_: diffusion_policy.policy.diffusion_transformer_video_conditioned.DiffusionTransformerHybridImagePolicy
 
   shape_meta: ${shape_meta}
   
@@ -51,7 +51,7 @@ policy:
   cond_predict_scale: True
   obs_encoder_group_norm: True
   eval_fixed_crop: True
-
+  robot_as_condition: 0
   # scheduler.step params
   # predict_epsilon: True
 

@@ -34,13 +34,13 @@ class VideoStreamer(object):
         decoded_rgb = cv2.imdecode(encoded_rgb, cv2.IMREAD_COLOR)
 
         # BGR to RGB
-        rgb_image = cv2.cvtColor(decoded_rgb, cv2.COLOR_BGR2RGB)
+        # decoded_rgb = cv2.cvtColor(decoded_rgb, cv2.COLOR_BGR2RGB)
 
-        return rgb_image
+        return decoded_rgb
 
 
 if __name__ == "__main__":
-    video_streamer = VideoStreamer("10.177.63.229", 10005)
+    video_streamer = VideoStreamer("10.162.182.186", 10006)
     result = video_streamer.get_image_tensor()
     print(result.shape)
     cv2.imwrite("./test.jpg", result)

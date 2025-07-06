@@ -22,7 +22,8 @@ class TransformerForDiffusion(ModuleAttrMixin):
             causal_attn: bool=False,
             time_as_cond: bool=True,
             obs_as_cond: bool=False,
-            n_cond_layers: int = 0
+            n_cond_layers: int = 0,
+            robot_as_condition = 0
         ) -> None:
         super().__init__()
 
@@ -38,7 +39,10 @@ class TransformerForDiffusion(ModuleAttrMixin):
         obs_as_cond = cond_dim > 0
         if obs_as_cond:
             assert time_as_cond
-            T_cond += n_obs_steps
+            if robot_as_condition ==0:
+                T_cond += n_obs_steps
+            else:
+                T_cond += horizon
 
         # input embedding stem
         self.input_emb = nn.Linear(input_dim, n_emb)

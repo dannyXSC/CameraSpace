@@ -143,3 +143,4 @@ danny_wandb.sh
 .idea/
 eval.json
 train.json
+tests/my

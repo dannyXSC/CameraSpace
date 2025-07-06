@@ -21,7 +21,7 @@ shape_meta: &shape_meta
 
 task_name:
 dataset_path: 
-
+if_mask: False
 dataset_type: &dataset_type ph
 abs_action: &abs_action False
 rotation_rep: &rotation_rep 'rotation_6d'
@@ -50,6 +50,7 @@ env_runner:
   n_envs: 28
   env_name: ${task.task_name}
   rotation_rep: *rotation_rep
+  if_mask: ${task.if_mask}
 # evaluation at this config requires a 16 core 64GB instance.
 
 dataset:
@@ -66,3 +67,4 @@ dataset:
   use_cache: True
   seed: 42
   val_ratio: 0.02
+  if_mask: ${task.if_mask}

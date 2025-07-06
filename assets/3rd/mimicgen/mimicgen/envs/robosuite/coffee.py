@@ -7,18 +7,32 @@ from collections import OrderedDict
 from copy import deepcopy
 import numpy as np
 
-from robosuite.utils.mjcf_utils import CustomMaterial, add_material, find_elements, string_to_array
+from robosuite.utils.mjcf_utils import (
+    CustomMaterial,
+    add_material,
+    find_elements,
+    string_to_array,
+)
 
 import robosuite.utils.transform_utils as T
 from robosuite.environments.manipulation.single_arm_env import SingleArmEnv
 
 from robosuite.models.arenas import TableArena
 from robosuite.models.tasks import ManipulationTask
-from robosuite.utils.placement_samplers import SequentialCompositeSampler, UniformRandomSampler
+from robosuite.utils.placement_samplers import (
+    SequentialCompositeSampler,
+    UniformRandomSampler,
+)
 from robosuite.utils.observables import Observable, sensor
 
 import mimicgen
-from mimicgen.models.robosuite.objects import BlenderObject, CoffeeMachinePodObject, CoffeeMachineObject, LongDrawerObject, CupObject
+from mimicgen.models.robosuite.objects import (
+    BlenderObject,
+    CoffeeMachinePodObject,
+    CoffeeMachineObject,
+    LongDrawerObject,
+    CupObject,
+)
 from mimicgen.envs.robosuite.single_arm_env_mg import SingleArmEnv_MG
 
 
@@ -147,7 +161,7 @@ class Coffee(SingleArmEnv_MG):
         gripper_types="default",
         initialization_noise="default",
         table_full_size=(0.8, 0.8, 0.05),
-        table_friction=(1., 5e-3, 1e-4),
+        table_friction=(1.0, 5e-3, 1e-4),
         use_camera_obs=True,
         use_object_obs=True,
         reward_scale=1.0,
@@ -224,7 +238,7 @@ class Coffee(SingleArmEnv_MG):
         Returns:
             float: reward value
         """
-        reward = 0.
+        reward = 0.0
 
         # sparse completion reward
         if self._check_success():
@@ -241,7 +255,9 @@ class Coffee(SingleArmEnv_MG):
 
     def _set_robot(self):
         # Adjust base pose accordingly
-        xpos = self.robots[0].robot_model.base_xpos_offset["table"](self.table_full_size[0])
+        xpos = self.robots[0].robot_model.base_xpos_offset["table"](
+            self.table_full_size[0]
+        )
         self.robots[0].robot_model.set_base_xpos(xpos)
 
     def _load_model(self):
@@ -296,7 +312,7 @@ class Coffee(SingleArmEnv_MG):
             coffee_machine=dict(
                 x=(0.0, 0.0),
                 y=(-0.1, -0.1),
-                z_rot=(-np.pi / 6., -np.pi / 6.),
+                z_rot=(-np.pi / 6.0, -np.pi / 6.0),
                 reference=self.table_offset,
             ),
             coffee_pod=dict(
@@ -318,11 +334,11 @@ class Coffee(SingleArmEnv_MG):
                 x_range=bounds["coffee_machine"]["x"],
                 y_range=bounds["coffee_machine"]["y"],
                 rotation=bounds["coffee_machine"]["z_rot"],
-                rotation_axis='z',
+                rotation_axis="z",
                 ensure_object_boundary_in_range=False,
                 ensure_valid_placement=True,
                 reference_pos=bounds["coffee_machine"]["reference"],
-                z_offset=0.,
+                z_offset=0.0,
             )
         )
         self.placement_initializer.append_sampler(
@@ -332,11 +348,11 @@ class Coffee(SingleArmEnv_MG):
                 x_range=bounds["coffee_pod"]["x"],
                 y_range=bounds["coffee_pod"]["y"],
                 rotation=bounds["coffee_pod"]["z_rot"],
-                rotation_axis='z',
+                rotation_axis="z",
                 ensure_object_boundary_in_range=False,
                 ensure_valid_placement=True,
                 reference_pos=bounds["coffee_pod"]["reference"],
-                z_offset=0.,
+                z_offset=0.0,
             )
         )
 
@@ -352,16 +368,24 @@ class Coffee(SingleArmEnv_MG):
         self.obj_body_id = dict(
             coffee_pod=self.sim.model.body_name2id(self.coffee_pod.root_body),
             coffee_machine=self.sim.model.body_name2id(self.coffee_machine.root_body),
-            coffee_pod_holder=self.sim.model.body_name2id("coffee_machine_pod_holder_root"),
+            coffee_pod_holder=self.sim.model.body_name2id(
+                "coffee_machine_pod_holder_root"
+            ),
             coffee_machine_lid=self.sim.model.body_name2id("coffee_machine_lid_main"),
         )
-        self.hinge_qpos_addr = self.sim.model.get_joint_qpos_addr("coffee_machine_lid_main_joint0")
+        self.hinge_qpos_addr = self.sim.model.get_joint_qpos_addr(
+            "coffee_machine_lid_main_joint0"
+        )
 
         # for checking contact (used in reward function, and potentially observation space)
         self.pod_geom_id = self.sim.model.geom_name2id("coffee_pod_g0")
         self.lid_geom_id = self.sim.model.geom_name2id("coffee_machine_lid_g0")
-        pod_holder_geom_names = ["coffee_machine_pod_holder_cup_body_hc_{}".format(i) for i in range(64)]
-        self.pod_holder_geom_ids = [self.sim.model.geom_name2id(x) for x in pod_holder_geom_names]
+        pod_holder_geom_names = [
+            "coffee_machine_pod_holder_cup_body_hc_{}".format(i) for i in range(64)
+        ]
+        self.pod_holder_geom_ids = [
+            self.sim.model.geom_name2id(x) for x in pod_holder_geom_names
+        ]
 
         # size of bounding box for pod holder
         self.pod_holder_size = self.coffee_machine.pod_holder_size
@@ -383,10 +407,13 @@ class Coffee(SingleArmEnv_MG):
 
             # Loop through all objects and reset their positions
             for obj_pos, obj_quat, obj in object_placements.values():
-                self.sim.data.set_joint_qpos(obj.joints[0], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
+                self.sim.data.set_joint_qpos(
+                    obj.joints[0],
+                    np.concatenate([np.array(obj_pos), np.array(obj_quat)]),
+                )
 
         # Always reset the hinge joint position
-        self.sim.data.qpos[self.hinge_qpos_addr] = 2. * np.pi / 3.
+        self.sim.data.qpos[self.hinge_qpos_addr] = 2.0 * np.pi / 3.0
         self.sim.forward()
 
     def _setup_observables(self):
@@ -407,31 +434,59 @@ class Coffee(SingleArmEnv_MG):
             # for conversion to relative gripper frame
             @sensor(modality=modality)
             def world_pose_in_gripper(obs_cache):
-                return T.pose_inv(T.pose2mat((obs_cache[f"{pf}eef_pos"], obs_cache[f"{pf}eef_quat"]))) if\
-                    f"{pf}eef_pos" in obs_cache and f"{pf}eef_quat" in obs_cache else np.eye(4)
+                return (
+                    T.pose_inv(
+                        T.pose2mat(
+                            (obs_cache[f"{pf}eef_pos"], obs_cache[f"{pf}eef_quat"])
+                        )
+                    )
+                    if f"{pf}eef_pos" in obs_cache and f"{pf}eef_quat" in obs_cache
+                    else np.eye(4)
+                )
+
             sensors = [world_pose_in_gripper]
             names = ["world_pose_in_gripper"]
             actives = [False]
 
             @sensor(modality=modality)
             def eef_control_frame_pose(obs_cache):
-                return T.make_pose(
-                    np.array(self.sim.data.site_xpos[self.sim.model.site_name2id(self.robots[0].controller.eef_name)]),
-                    np.array(self.sim.data.site_xmat[self.sim.model.site_name2id(self.robots[0].controller.eef_name)].reshape([3, 3])),
-                ) if \
-                    f"{pf}eef_pos" in obs_cache and f"{pf}eef_quat" in obs_cache else np.eye(4)
+                return (
+                    T.make_pose(
+                        np.array(
+                            self.sim.data.site_xpos[
+                                self.sim.model.site_name2id(
+                                    self.robots[0].controller.eef_name
+                                )
+                            ]
+                        ),
+                        np.array(
+                            self.sim.data.site_xmat[
+                                self.sim.model.site_name2id(
+                                    self.robots[0].controller.eef_name
+                                )
+                            ].reshape([3, 3])
+                        ),
+                    )
+                    if f"{pf}eef_pos" in obs_cache and f"{pf}eef_quat" in obs_cache
+                    else np.eye(4)
+                )
+
             sensors += [eef_control_frame_pose]
             names += ["eef_control_frame_pose"]
             actives += [False]
 
             # add ground-truth poses (absolute and relative to eef) for all objects
             for obj_name in self.obj_body_id:
-                obj_sensors, obj_sensor_names = self._create_obj_sensors(obj_name=obj_name, modality=modality)
+                obj_sensors, obj_sensor_names = self._create_obj_sensors(
+                    obj_name=obj_name, modality=modality
+                )
                 sensors += obj_sensors
                 names += obj_sensor_names
                 actives += [True] * len(obj_sensors)
 
-            obj_centric_sensors, obj_centric_sensor_names = self._create_obj_centric_sensors(modality="object_centric")
+            obj_centric_sensors, obj_centric_sensor_names = (
+                self._create_obj_centric_sensors(modality="object_centric")
+            )
             sensors += obj_centric_sensors
             names += obj_centric_sensor_names
             actives += [True] * len(obj_centric_sensors)
@@ -440,6 +495,7 @@ class Coffee(SingleArmEnv_MG):
             @sensor(modality=modality)
             def hinge_angle(obs_cache):
                 return np.array([self.sim.data.qpos[self.hinge_qpos_addr]])
+
             sensors += [hinge_angle]
             names += ["hinge_angle"]
             actives += [True]
@@ -478,16 +534,30 @@ class Coffee(SingleArmEnv_MG):
 
         @sensor(modality=modality)
         def obj_quat(obs_cache):
-            return T.convert_quat(self.sim.data.body_xquat[self.obj_body_id[obj_name]], to="xyzw")
+            return T.convert_quat(
+                self.sim.data.body_xquat[self.obj_body_id[obj_name]], to="xyzw"
+            )
 
         @sensor(modality=modality)
         def obj_to_eef_pos(obs_cache):
             # Immediately return default value if cache is empty
-            if any([name not in obs_cache for name in
-                    [f"{obj_name}_pos", f"{obj_name}_quat", "world_pose_in_gripper"]]):
+            if any(
+                [
+                    name not in obs_cache
+                    for name in [
+                        f"{obj_name}_pos",
+                        f"{obj_name}_quat",
+                        "world_pose_in_gripper",
+                    ]
+                ]
+            ):
                 return np.zeros(3)
-            obj_pose = T.pose2mat((obs_cache[f"{obj_name}_pos"], obs_cache[f"{obj_name}_quat"]))
-            rel_pose = T.pose_in_A_to_pose_in_B(obj_pose, obs_cache["world_pose_in_gripper"])
+            obj_pose = T.pose2mat(
+                (obs_cache[f"{obj_name}_pos"], obs_cache[f"{obj_name}_quat"])
+            )
+            rel_pose = T.pose_in_A_to_pose_in_B(
+                obj_pose, obs_cache["world_pose_in_gripper"]
+            )
             rel_pos, rel_quat = T.mat2pose(rel_pose)
             obs_cache[f"{obj_name}_to_{pf}eef_quat"] = rel_quat
             obs_cache[f"{obj_name}_pose"] = obj_pose
@@ -495,18 +565,26 @@ class Coffee(SingleArmEnv_MG):
 
         @sensor(modality=modality)
         def obj_to_eef_quat(obs_cache):
-            return obs_cache[f"{obj_name}_to_{pf}eef_quat"] if \
-                f"{obj_name}_to_{pf}eef_quat" in obs_cache else np.zeros(4)
+            return (
+                obs_cache[f"{obj_name}_to_{pf}eef_quat"]
+                if f"{obj_name}_to_{pf}eef_quat" in obs_cache
+                else np.zeros(4)
+            )
 
         sensors = [obj_pos, obj_quat, obj_to_eef_pos, obj_to_eef_quat]
-        names = [f"{obj_name}_pos", f"{obj_name}_quat", f"{obj_name}_to_{pf}eef_pos", f"{obj_name}_to_{pf}eef_quat"]
+        names = [
+            f"{obj_name}_pos",
+            f"{obj_name}_quat",
+            f"{obj_name}_to_{pf}eef_pos",
+            f"{obj_name}_to_{pf}eef_quat",
+        ]
 
         return sensors, names
 
     def _create_obj_centric_sensors(self, modality="object_centric"):
         """
-        Creates sensors for poses relative to certain objects. This is abstracted in a separate 
-        function call so that we don't have local function naming collisions during 
+        Creates sensors for poses relative to certain objects. This is abstracted in a separate
+        function call so that we don't have local function naming collisions during
         the _setup_observables() call.
 
         Args:
@@ -524,8 +602,7 @@ class Coffee(SingleArmEnv_MG):
         # helper function for relative position sensors, to avoid code duplication
         def _pos_helper(obs_cache, obs_name, ref_name, quat_cache_name):
             # Immediately return default value if cache is empty
-            if any([name not in obs_cache for name in
-                    [obs_name, ref_name]]):
+            if any([name not in obs_cache for name in [obs_name, ref_name]]):
                 return np.zeros(3)
             ref_pose = obs_cache[ref_name]
             obs_pose = obs_cache[obs_name]
@@ -536,8 +613,11 @@ class Coffee(SingleArmEnv_MG):
 
         # helper function for relative quaternion sensors, to avoid code duplication
         def _quat_helper(obs_cache, quat_cache_name):
-            return obs_cache[quat_cache_name] if \
-                quat_cache_name in obs_cache else np.zeros(4)
+            return (
+                obs_cache[quat_cache_name]
+                if quat_cache_name in obs_cache
+                else np.zeros(4)
+            )
 
         # eef pose relative to ref object frames
         @sensor(modality=modality)
@@ -548,12 +628,14 @@ class Coffee(SingleArmEnv_MG):
                 ref_name="coffee_pod_pose",
                 quat_cache_name="eef_quat_rel_pod",
             )
+
         @sensor(modality=modality)
         def eef_quat_rel_pod(obs_cache):
             return _quat_helper(
                 obs_cache=obs_cache,
                 quat_cache_name="eef_quat_rel_pod",
             )
+
         sensors += [eef_pos_rel_pod, eef_quat_rel_pod]
         names += [f"{pf}eef_pos_rel_pod", f"{pf}eef_quat_rel_pod"]
 
@@ -565,12 +647,14 @@ class Coffee(SingleArmEnv_MG):
                 ref_name="coffee_pod_holder_pose",
                 quat_cache_name="eef_quat_rel_pod_holder",
             )
+
         @sensor(modality=modality)
         def eef_quat_rel_pod_holder(obs_cache):
             return _quat_helper(
                 obs_cache=obs_cache,
                 quat_cache_name="eef_quat_rel_pod_holder",
             )
+
         sensors += [eef_pos_rel_pod_holder, eef_quat_rel_pod_holder]
         names += [f"{pf}eef_pos_rel_pod_holder", f"{pf}eef_quat_rel_pod_holder"]
 
@@ -583,12 +667,14 @@ class Coffee(SingleArmEnv_MG):
                 ref_name="coffee_pod_holder_pose",
                 quat_cache_name="pod_quat_rel_pod_holder",
             )
+
         @sensor(modality=modality)
         def pod_quat_rel_pod_holder(obs_cache):
             return _quat_helper(
                 obs_cache=obs_cache,
                 quat_cache_name="pod_quat_rel_pod_holder",
             )
+
         sensors += [pod_pos_rel_pod_holder, pod_quat_rel_pod_holder]
         names += ["pod_pos_rel_pod_holder", "pod_quat_rel_pod_holder"]
 
@@ -603,14 +689,16 @@ class Coffee(SingleArmEnv_MG):
 
     def _check_lid(self):
         # lid should be closed (angle should be less than 5 degrees)
-        hinge_tolerance = 15. * np.pi / 180. 
+        hinge_tolerance = 15.0 * np.pi / 180.0
         hinge_angle = self.sim.data.qpos[self.hinge_qpos_addr]
-        lid_check = (hinge_angle < hinge_tolerance)
+        lid_check = hinge_angle < hinge_tolerance
         return lid_check
 
     def _check_pod(self):
         # pod should be in pod holder
-        pod_holder_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]])
+        pod_holder_pos = np.array(
+            self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]]
+        )
         pod_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod"]])
         pod_check = True
         pod_horz_check = True
@@ -622,10 +710,14 @@ class Coffee(SingleArmEnv_MG):
             pod_horz_check = False
 
         # make sure vertical pod dimension is above pod holder lower bound and below the lid lower bound
-        lid_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_machine_lid"]])
+        lid_pos = np.array(
+            self.sim.data.body_xpos[self.obj_body_id["coffee_machine_lid"]]
+        )
         z_lim_low = pod_holder_pos[2] - self.pod_holder_size[2]
         z_lim_high = lid_pos[2] - self.coffee_machine.lid_size[2]
-        if (pod_pos[2] - self.pod_size[2] < z_lim_low) or (pod_pos[2] + self.pod_size[2] > z_lim_high):
+        if (pod_pos[2] - self.pod_size[2] < z_lim_low) or (
+            pod_pos[2] + self.pod_size[2] > z_lim_high
+        ):
             pod_check = False
         return pod_check
 
@@ -636,7 +728,9 @@ class Coffee(SingleArmEnv_MG):
         pod_check = self._check_pod()
 
         # pod should be in pod holder
-        pod_holder_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]])
+        pod_holder_pos = np.array(
+            self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]]
+        )
         pod_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod"]])
         pod_horz_check = True
 
@@ -646,14 +740,18 @@ class Coffee(SingleArmEnv_MG):
             pod_horz_check = False
 
         # make sure vertical pod dimension is above pod holder lower bound and below the lid lower bound
-        lid_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_machine_lid"]])
+        lid_pos = np.array(
+            self.sim.data.body_xpos[self.obj_body_id["coffee_machine_lid"]]
+        )
         z_lim_low = pod_holder_pos[2] - self.pod_holder_size[2]
 
         metrics["task"] = lid_check and pod_check
 
         # for pod insertion check, just check that bottom of pod is within some tolerance of bottom of container
         pod_insertion_z_tolerance = 0.02
-        pod_z_check = (pod_pos[2] - self.pod_size[2] > z_lim_low) and (pod_pos[2] - self.pod_size[2] < z_lim_low + pod_insertion_z_tolerance)
+        pod_z_check = (pod_pos[2] - self.pod_size[2] > z_lim_low) and (
+            pod_pos[2] - self.pod_size[2] < z_lim_low + pod_insertion_z_tolerance
+        )
         metrics["insertion"] = pod_horz_check and pod_z_check
 
         # pod grasp check
@@ -661,11 +759,15 @@ class Coffee(SingleArmEnv_MG):
 
         # check is True if the pod is on / near the rim of the pod holder
         rim_horz_tolerance = 0.03
-        rim_horz_check = (np.linalg.norm(pod_pos[:2] - pod_holder_pos[:2]) < rim_horz_tolerance)
+        rim_horz_check = (
+            np.linalg.norm(pod_pos[:2] - pod_holder_pos[:2]) < rim_horz_tolerance
+        )
 
         rim_vert_tolerance = 0.026
         rim_vert_length = pod_pos[2] - pod_holder_pos[2] - self.pod_holder_size[2]
-        rim_vert_check = (rim_vert_length < rim_vert_tolerance) and (rim_vert_length > 0.)
+        rim_vert_check = (rim_vert_length < rim_vert_tolerance) and (
+            rim_vert_length > 0.0
+        )
         metrics["rim"] = rim_horz_check and rim_vert_check
 
         return metrics
@@ -676,7 +778,7 @@ class Coffee(SingleArmEnv_MG):
         """
         return self._check_grasp(
             gripper=self.robots[0].gripper,
-            object_geoms=[g for g in self.coffee_pod.contact_geoms]
+            object_geoms=[g for g in self.coffee_pod.contact_geoms],
         )
 
     def _check_pod_and_pod_holder_contact(self):
@@ -685,9 +787,12 @@ class Coffee(SingleArmEnv_MG):
         """
         pod_and_pod_holder_contact = False
         for contact in self.sim.data.contact[: self.sim.data.ncon]:
-            if(
-                ((contact.geom1 == self.pod_geom_id) and (contact.geom2 in self.pod_holder_geom_ids)) or
-                ((contact.geom2 == self.pod_geom_id) and (contact.geom1 in self.pod_holder_geom_ids))
+            if (
+                (contact.geom1 == self.pod_geom_id)
+                and (contact.geom2 in self.pod_holder_geom_ids)
+            ) or (
+                (contact.geom2 == self.pod_geom_id)
+                and (contact.geom1 in self.pod_holder_geom_ids)
             ):
                 pod_and_pod_holder_contact = True
                 break
@@ -697,7 +802,9 @@ class Coffee(SingleArmEnv_MG):
         """
         check if pod is on pod container rim and not being inserted properly (for reward check)
         """
-        pod_holder_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]])
+        pod_holder_pos = np.array(
+            self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]]
+        )
         pod_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod"]])
 
         # check if pod is in contact with the container
@@ -707,44 +814,56 @@ class Coffee(SingleArmEnv_MG):
         rim_vert_tolerance_1 = 0.022
         rim_vert_tolerance_2 = 0.026
         rim_vert_length = pod_pos[2] - pod_holder_pos[2] - self.pod_holder_size[2]
-        rim_vert_check = (rim_vert_length > rim_vert_tolerance_1) and (rim_vert_length < rim_vert_tolerance_2)
+        rim_vert_check = (rim_vert_length > rim_vert_tolerance_1) and (
+            rim_vert_length < rim_vert_tolerance_2
+        )
 
-        return (pod_and_pod_holder_contact and rim_vert_check)
+        return pod_and_pod_holder_contact and rim_vert_check
 
     def _check_pod_being_inserted(self):
         """
         check if robot is in the process of inserting the pod into the container
         """
-        pod_holder_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]])
+        pod_holder_pos = np.array(
+            self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]]
+        )
         pod_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod"]])
 
         rim_horz_tolerance = 0.005
-        rim_horz_check = (np.linalg.norm(pod_pos[:2] - pod_holder_pos[:2]) < rim_horz_tolerance)
+        rim_horz_check = (
+            np.linalg.norm(pod_pos[:2] - pod_holder_pos[:2]) < rim_horz_tolerance
+        )
 
         rim_vert_tolerance_1 = -0.01
         rim_vert_tolerance_2 = 0.023
         rim_vert_length = pod_pos[2] - pod_holder_pos[2] - self.pod_holder_size[2]
-        rim_vert_check = (rim_vert_length < rim_vert_tolerance_2) and (rim_vert_length > rim_vert_tolerance_1)
+        rim_vert_check = (rim_vert_length < rim_vert_tolerance_2) and (
+            rim_vert_length > rim_vert_tolerance_1
+        )
 
-        return (rim_horz_check and rim_vert_check)
+        return rim_horz_check and rim_vert_check
 
     def _check_pod_inserted(self):
         """
         check if pod has been inserted successfully
         """
-        pod_holder_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]])
+        pod_holder_pos = np.array(
+            self.sim.data.body_xpos[self.obj_body_id["coffee_pod_holder"]]
+        )
         pod_pos = np.array(self.sim.data.body_xpos[self.obj_body_id["coffee_pod"]])
 
         # center of pod cannot be more than the difference of radii away from the center of pod holder
         pod_horz_check = True
         r_diff = self.pod_holder_size[0] - self.pod_size[0]
-        pod_horz_check = (np.linalg.norm(pod_pos[:2] - pod_holder_pos[:2]) <= r_diff)
+        pod_horz_check = np.linalg.norm(pod_pos[:2] - pod_holder_pos[:2]) <= r_diff
 
         # check that bottom of pod is within some tolerance of bottom of container
         pod_insertion_z_tolerance = 0.02
         z_lim_low = pod_holder_pos[2] - self.pod_holder_size[2]
-        pod_z_check = (pod_pos[2] - self.pod_size[2] > z_lim_low) and (pod_pos[2] - self.pod_size[2] < z_lim_low + pod_insertion_z_tolerance)
-        return (pod_horz_check and pod_z_check)
+        pod_z_check = (pod_pos[2] - self.pod_size[2] > z_lim_low) and (
+            pod_pos[2] - self.pod_size[2] < z_lim_low + pod_insertion_z_tolerance
+        )
+        return pod_horz_check and pod_z_check
 
     def _check_lid_being_closed(self):
         """
@@ -753,7 +872,7 @@ class Coffee(SingleArmEnv_MG):
 
         # (check for hinge angle being less than default angle value, 120 degrees)
         hinge_angle = self.sim.data.qpos[self.hinge_qpos_addr]
-        return (hinge_angle < 2.09)
+        return hinge_angle < 2.09
 
     def visualize(self, vis_settings):
         """
@@ -769,11 +888,14 @@ class Coffee(SingleArmEnv_MG):
 
         # Color the gripper visualization site according to its distance to the coffee machine
         if vis_settings["grippers"]:
-            self._visualize_gripper_to_target(gripper=self.robots[0].gripper, target=self.coffee_machine)
+            self._visualize_gripper_to_target(
+                gripper=self.robots[0].gripper, target=self.coffee_machine
+            )
 
 
 class Coffee_D0(Coffee):
     """Rename base class for convenience."""
+
     pass
 
 
@@ -781,6 +903,7 @@ class Coffee_D1(Coffee_D0):
     """
     Wider initialization for pod and coffee machine.
     """
+
     def _get_initial_placement_bounds(self):
         """
         Internal function to get bounds for randomization of initial placements of objects (e.g.
@@ -796,7 +919,7 @@ class Coffee_D1(Coffee_D0):
             coffee_machine=dict(
                 x=(0.05, 0.15),
                 y=(-0.2, -0.1),
-                z_rot=(-np.pi / 6., np.pi / 3.),
+                z_rot=(-np.pi / 6.0, np.pi / 3.0),
                 reference=self.table_offset,
             ),
             coffee_pod=dict(
@@ -818,6 +941,7 @@ class Coffee_D2(Coffee_D1):
     Similar to Coffee_D1, but put pod on the left, and machine on the right. Had to also move
     machine closer to robot (in x) to get kinematics to work out.
     """
+
     def _get_initial_placement_bounds(self):
         """
         Internal function to get bounds for randomization of initial placements of objects (e.g.
@@ -833,7 +957,7 @@ class Coffee_D2(Coffee_D1):
             coffee_machine=dict(
                 x=(-0.05, 0.05),
                 y=(0.1, 0.2),
-                z_rot=(2. * np.pi / 3., 7. * np.pi / 6.),
+                z_rot=(2.0 * np.pi / 3.0, 7.0 * np.pi / 6.0),
                 reference=self.table_offset,
             ),
             coffee_pod=dict(
@@ -848,16 +972,19 @@ class Coffee_D2(Coffee_D1):
 class CoffeePreparation(Coffee):
     """
     Harder coffee task where the task starts with materials in drawer and coffee machine closed. The robot
-    needs to retrieve the coffee pod and mug from the drawer, open the coffee machine, place the pod and mug 
+    needs to retrieve the coffee pod and mug from the drawer, open the coffee machine, place the pod and mug
     in the machine, and then close the lid.
     """
+
     def _get_mug_model(self):
         """
         Allow subclasses to override which mug to use.
         """
-        shapenet_id = "3143a4ac" # beige round mug, works well and matches color scheme of other assets
+        shapenet_id = "3143a4ac"  # beige round mug, works well and matches color scheme of other assets
         shapenet_scale = 1.0
-        base_mjcf_path = os.path.join(mimicgen.__path__[0], "models/robosuite/assets/shapenet_core/mugs")
+        base_mjcf_path = os.path.join(
+            mimicgen.__path__[0], "models/robosuite/assets/shapenet_core/mugs"
+        )
         mjcf_path = os.path.join(base_mjcf_path, "{}/model.xml".format(shapenet_id))
 
         self.mug = BlenderObject(
@@ -872,15 +999,20 @@ class CoffeePreparation(Coffee):
             margin=0.001,
         )
 
+    def _set_robot(self):
+        # Adjust base pose accordingly
+        xpos = self.robots[0].robot_model.base_xpos_offset["table"](
+            self.table_full_size[0]
+        )
+        self.robots[0].robot_model.set_base_xpos(xpos)
+
     def _load_model(self):
         """
         Loads an xml model, puts it in self.model
         """
         SingleArmEnv._load_model(self)
 
-        # Adjust base pose accordingly
-        xpos = self.robots[0].robot_model.base_xpos_offset["table"](self.table_full_size[0])
-        self.robots[0].robot_model.set_base_xpos(xpos)
+        self._set_robot()
 
         # load model for table top workspace
         mujoco_arena = TableArena(
@@ -896,10 +1028,26 @@ class CoffeePreparation(Coffee):
         self._add_agentview_full_camera(mujoco_arena)
 
         # Set default agentview camera to be "agentview_full" (and send old agentview camera to agentview_full)
-        old_agentview_camera = find_elements(root=mujoco_arena.worldbody, tags="camera", attribs={"name": "agentview"}, return_first=True)
-        old_agentview_camera_pose = (old_agentview_camera.get("pos"), old_agentview_camera.get("quat"))
-        old_agentview_full_camera = find_elements(root=mujoco_arena.worldbody, tags="camera", attribs={"name": "agentview_full"}, return_first=True)
-        old_agentview_full_camera_pose = (old_agentview_full_camera.get("pos"), old_agentview_full_camera.get("quat"))
+        old_agentview_camera = find_elements(
+            root=mujoco_arena.worldbody,
+            tags="camera",
+            attribs={"name": "agentview"},
+            return_first=True,
+        )
+        old_agentview_camera_pose = (
+            old_agentview_camera.get("pos"),
+            old_agentview_camera.get("quat"),
+        )
+        old_agentview_full_camera = find_elements(
+            root=mujoco_arena.worldbody,
+            tags="camera",
+            attribs={"name": "agentview_full"},
+            return_first=True,
+        )
+        old_agentview_full_camera_pose = (
+            old_agentview_full_camera.get("pos"),
+            old_agentview_full_camera.get("quat"),
+        )
         mujoco_arena.set_camera(
             camera_name="agentview",
             pos=string_to_array(old_agentview_full_camera_pose[0]),
@@ -912,14 +1060,8 @@ class CoffeePreparation(Coffee):
         )
 
         # Create drawer object
-        tex_attrib = {
-            "type": "cube"
-        }
-        mat_attrib = {
-            "texrepeat": "1 1",
-            "specular": "0.4",
-            "shininess": "0.1"
-        }
+        tex_attrib = {"type": "cube"}
+        mat_attrib = {"texrepeat": "1 1", "specular": "0.4", "shininess": "0.1"}
         redwood = CustomMaterial(
             texture="WoodRed",
             tex_name="redwood",
@@ -939,7 +1081,7 @@ class CoffeePreparation(Coffee):
             tex_name="lightwood",
             mat_name="MatLightWood",
             tex_attrib={"type": "cube"},
-            mat_attrib={"texrepeat": "3 3", "specular": "0.4","shininess": "0.1"}
+            mat_attrib={"texrepeat": "3 3", "specular": "0.4", "shininess": "0.1"},
         )
         self.cabinet_object = LongDrawerObject(name="CabinetObject")
 
@@ -949,9 +1091,11 @@ class CoffeePreparation(Coffee):
         # mujoco_arena.table_body.append(cabinet_object)
         obj_body = self.cabinet_object
         for material in [redwood, ceramic, lightwood]:
-            tex_element, mat_element, _, used = add_material(root=obj_body.worldbody,
-                                                             naming_prefix=obj_body.naming_prefix,
-                                                             custom_material=deepcopy(material))
+            tex_element, mat_element, _, used = add_material(
+                root=obj_body.worldbody,
+                naming_prefix=obj_body.naming_prefix,
+                custom_material=deepcopy(material),
+            )
             obj_body.asset.append(tex_element)
             obj_body.asset.append(mat_element)
 
@@ -975,7 +1119,7 @@ class CoffeePreparation(Coffee):
         )
         # HACK: merge in mug afterwards because its number of geoms may change
         #       and this may break the generate_id_mappings function in task.py
-        self.model.merge_objects([self.mug]) # add cleanup object to model 
+        self.model.merge_objects([self.mug])  # add cleanup object to model
 
     def _get_initial_placement_bounds(self):
         """
@@ -1001,7 +1145,7 @@ class CoffeePreparation(Coffee):
             coffee_machine=dict(
                 x=(-0.15, -0.15),
                 y=(-0.25, -0.25),
-                z_rot=(-np.pi / 6., -np.pi / 6.),
+                z_rot=(-np.pi / 6.0, -np.pi / 6.0),
                 # put vertical
                 # z_rot=(-np.pi / 2., -np.pi / 2.),
                 reference=self.table_offset,
@@ -1017,14 +1161,14 @@ class CoffeePreparation(Coffee):
                 # z_rot=(0.0, 0.0),
                 x=(0.05, 0.20),
                 y=(0.05, 0.25),
-                z_rot=(0.0, 0.0), 
+                z_rot=(0.0, 0.0),
                 reference=self.table_offset,
             ),
             coffee_pod=dict(
                 x=(-0.03, 0.03),
                 y=(-0.05, 0.03),
                 z_rot=(0.0, 0.0),
-                reference=np.array((0., 0., 0.)),
+                reference=np.array((0.0, 0.0, 0.0)),
             ),
         )
 
@@ -1039,7 +1183,7 @@ class CoffeePreparation(Coffee):
                 x_range=bounds["drawer"]["x"],
                 y_range=bounds["drawer"]["y"],
                 rotation=bounds["drawer"]["z_rot"],
-                rotation_axis='z',
+                rotation_axis="z",
                 ensure_object_boundary_in_range=False,
                 ensure_valid_placement=True,
                 reference_pos=bounds["drawer"]["reference"],
@@ -1053,11 +1197,11 @@ class CoffeePreparation(Coffee):
                 x_range=bounds["coffee_machine"]["x"],
                 y_range=bounds["coffee_machine"]["y"],
                 rotation=bounds["coffee_machine"]["z_rot"],
-                rotation_axis='z',
+                rotation_axis="z",
                 ensure_object_boundary_in_range=False,
                 ensure_valid_placement=True,
                 reference_pos=bounds["coffee_machine"]["reference"],
-                z_offset=0.,
+                z_offset=0.0,
             )
         )
         self.placement_initializer.append_sampler(
@@ -1067,7 +1211,7 @@ class CoffeePreparation(Coffee):
                 x_range=bounds["mug"]["x"],
                 y_range=bounds["mug"]["y"],
                 rotation=bounds["mug"]["z_rot"],
-                rotation_axis='z',
+                rotation_axis="z",
                 ensure_object_boundary_in_range=False,
                 ensure_valid_placement=True,
                 reference_pos=bounds["mug"]["reference"],
@@ -1086,12 +1230,12 @@ class CoffeePreparation(Coffee):
             x_range=bounds["coffee_pod"]["x"],
             y_range=bounds["coffee_pod"]["y"],
             rotation=bounds["coffee_pod"]["z_rot"],
-            rotation_axis='z',
+            rotation_axis="z",
             # ensure_object_boundary_in_range=True, # make sure pod fits within the box
-            ensure_object_boundary_in_range=False, # make sure pod fits within the box
+            ensure_object_boundary_in_range=False,  # make sure pod fits within the box
             ensure_valid_placement=True,
             reference_pos=bounds["coffee_pod"]["reference"],
-            z_offset=0.,
+            z_offset=0.0,
         )
 
     def _setup_references(self):
@@ -1102,10 +1246,16 @@ class CoffeePreparation(Coffee):
         """
         super()._setup_references()
 
-        self.cabinet_qpos_addr = self.sim.model.get_joint_qpos_addr(self.cabinet_object.joints[0])
-        self.obj_body_id["drawer"] = self.sim.model.body_name2id(self.cabinet_object.root_body)
+        self.cabinet_qpos_addr = self.sim.model.get_joint_qpos_addr(
+            self.cabinet_object.joints[0]
+        )
+        self.obj_body_id["drawer"] = self.sim.model.body_name2id(
+            self.cabinet_object.root_body
+        )
         self.obj_body_id["mug"] = self.sim.model.body_name2id(self.mug.root_body)
-        self.drawer_bottom_geom_id = self.sim.model.geom_name2id("CabinetObject_drawer_bottom")
+        self.drawer_bottom_geom_id = self.sim.model.geom_name2id(
+            "CabinetObject_drawer_bottom"
+        )
 
     def _reset_internal(self):
         """
@@ -1126,21 +1276,26 @@ class CoffeePreparation(Coffee):
                     body_id = self.sim.model.body_name2id(obj.root_body)
                     obj_pos_to_set = np.array(obj_pos)
                     # obj_pos_to_set[2] = 0.905 # hardcode z-value to correspond to parent class
-                    obj_pos_to_set[2] = 0.805 # hardcode z-value to make sure it lies on table surface
+                    obj_pos_to_set[2] = (
+                        0.805  # hardcode z-value to make sure it lies on table surface
+                    )
                     self.sim.model.body_pos[body_id] = obj_pos_to_set
                     self.sim.model.body_quat[body_id] = obj_quat
                 else:
                     # object has free joint - use it to set pose
-                    self.sim.data.set_joint_qpos(obj.joints[0], np.concatenate([np.array(obj_pos), np.array(obj_quat)]))
+                    self.sim.data.set_joint_qpos(
+                        obj.joints[0],
+                        np.concatenate([np.array(obj_pos), np.array(obj_quat)]),
+                    )
 
         # Always reset the hinge joint position, and the cabinet slide joint position
 
         # Hinge for coffee machine starts closed
-        self.sim.data.qpos[self.hinge_qpos_addr] = 0.
+        self.sim.data.qpos[self.hinge_qpos_addr] = 0.0
         # self.sim.data.qpos[self.hinge_qpos_addr] = 2. * np.pi / 3.
 
         # Cabinet should start closed (0.) but can set to open (-0.135) for debugging.
-        self.sim.data.qpos[self.cabinet_qpos_addr] = 0.
+        self.sim.data.qpos[self.cabinet_qpos_addr] = 0.0
         # self.sim.data.qpos[self.cabinet_qpos_addr] = -0.135
         self.sim.forward()
 
@@ -1154,11 +1309,20 @@ class CoffeePreparation(Coffee):
             assert pod_obj is self.coffee_pod
 
             # center of drawer bottom
-            drawer_bottom_geom_pos = np.array(self.sim.data.geom_xpos[self.drawer_bottom_geom_id])
+            drawer_bottom_geom_pos = np.array(
+                self.sim.data.geom_xpos[self.drawer_bottom_geom_id]
+            )
 
             # our x-y relative position is sampled with respect to drawer geom frame. Here, we use the drawer's rotation
             # matrix to convert this relative position to a world relative position, so we can add it to the drawer world position
-            drawer_rot_mat = T.quat2mat(T.convert_quat(self.sim.model.body_quat[self.sim.model.body_name2id(self.cabinet_object.root_body)], to="xyzw"))
+            drawer_rot_mat = T.quat2mat(
+                T.convert_quat(
+                    self.sim.model.body_quat[
+                        self.sim.model.body_name2id(self.cabinet_object.root_body)
+                    ],
+                    to="xyzw",
+                )
+            )
             rel_pod_pos[:2] = drawer_rot_mat[:2, :2].dot(rel_pod_pos[:2])
 
             # also convert the sampled pod rotation to world frame
@@ -1167,15 +1331,27 @@ class CoffeePreparation(Coffee):
             pod_quat = T.convert_quat(T.mat2quat(pod_mat), to="wxyz")
 
             # get half-sizes of drawer geom and coffee pod to place coffee pod at correct z-location (on top of drawer bottom geom)
-            drawer_bottom_geom_z_offset = self.sim.model.geom_size[self.drawer_bottom_geom_id][-1] # half-size of geom in z-direction
+            drawer_bottom_geom_z_offset = self.sim.model.geom_size[
+                self.drawer_bottom_geom_id
+            ][
+                -1
+            ]  # half-size of geom in z-direction
             coffee_pod_bottom_offset = np.abs(self.coffee_pod.bottom_offset[-1])
-            coffee_pod_z = drawer_bottom_geom_pos[2] + drawer_bottom_geom_z_offset + coffee_pod_bottom_offset + 0.001
+            coffee_pod_z = (
+                drawer_bottom_geom_pos[2]
+                + drawer_bottom_geom_z_offset
+                + coffee_pod_bottom_offset
+                + 0.001
+            )
 
             # set coffee pod in center of drawer
             pod_pos = np.array(drawer_bottom_geom_pos) + rel_pod_pos
             pod_pos[-1] = coffee_pod_z
 
-            self.sim.data.set_joint_qpos(pod_obj.joints[0], np.concatenate([np.array(pod_pos), np.array(pod_quat)]))
+            self.sim.data.set_joint_qpos(
+                pod_obj.joints[0],
+                np.concatenate([np.array(pod_pos), np.array(pod_quat)]),
+            )
 
     def _setup_observables(self):
         """
@@ -1195,6 +1371,7 @@ class CoffeePreparation(Coffee):
             @sensor(modality=modality)
             def drawer_joint_angle(obs_cache):
                 return np.array([self.sim.data.qpos[self.cabinet_qpos_addr]])
+
             sensors = [drawer_joint_angle]
             names = ["drawer_joint_angle"]
             actives = [True]
@@ -1219,8 +1396,8 @@ class CoffeePreparation(Coffee):
         # then take cosine dist (1 - dot-prod)
         obj_rot = self.sim.data.body_xmat[self.obj_body_id["mug"]].reshape(3, 3)
         z_axis = obj_rot[:3, 2]
-        dist_to_z_axis = 1. - z_axis[2]
-        mug_upright = (dist_to_z_axis < 1e-3)
+        dist_to_z_axis = 1.0 - z_axis[2]
+        mug_upright = dist_to_z_axis < 1e-3
 
         # to check if mug is placed on the machine successfully, we check that the mug is upright, and that it is
         # making contact with the coffee machine base plate
@@ -1240,7 +1417,7 @@ class CoffeePreparation(Coffee):
         # whether mug is grasped (NOTE: the use of tolerant grasp function for mug, due to problems with contact)
         metrics["mug_grasp"] = self._check_grasp_tolerant(
             gripper=self.robots[0].gripper,
-            object_geoms=[g for g in self.mug.contact_geoms]
+            object_geoms=[g for g in self.mug.contact_geoms],
         )
 
         # whether mug has been placed on coffee machine
@@ -1257,6 +1434,7 @@ class CoffeePreparation(Coffee):
 
 class CoffeePreparation_D0(CoffeePreparation):
     """Rename base class for convenience."""
+
     pass
 
 
@@ -1265,6 +1443,7 @@ class CoffeePreparation_D1(CoffeePreparation_D0):
     Broader initialization for mug (whole right side of table, with rotation) and
     modest movement for coffee machine (some translation and rotation).
     """
+
     def _get_initial_placement_bounds(self):
         return dict(
             drawer=dict(
@@ -1276,20 +1455,19 @@ class CoffeePreparation_D1(CoffeePreparation_D0):
             coffee_machine=dict(
                 x=(-0.25, -0.15),
                 y=(-0.30, -0.25),
-                z_rot=(-np.pi / 6., np.pi / 6.),
+                z_rot=(-np.pi / 6.0, np.pi / 6.0),
                 reference=self.table_offset,
             ),
             mug=dict(
                 x=(-0.15, 0.20),
                 y=(0.05, 0.25),
-                z_rot=(0.0, 2. * np.pi), 
+                z_rot=(0.0, 2.0 * np.pi),
                 reference=self.table_offset,
             ),
             coffee_pod=dict(
                 x=(-0.03, 0.03),
                 y=(-0.05, 0.03),
                 z_rot=(0.0, 0.0),
-                reference=np.array((0., 0., 0.)),
+                reference=np.array((0.0, 0.0, 0.0)),
             ),
         )
-        

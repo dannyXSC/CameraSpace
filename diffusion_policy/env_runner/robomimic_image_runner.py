@@ -26,6 +26,7 @@ from diffusion_policy.env.robomimic.robomimic_image_wrapper import RobomimicImag
 import robomimic.utils.file_utils as FileUtils
 import robomimic.utils.env_utils as EnvUtils
 import robomimic.utils.obs_utils as ObsUtils
+from mimicgen.env_interfaces.base import make_interface
 
 
 def create_env(env_meta, shape_meta, enable_render=True):
@@ -71,6 +72,7 @@ class RobomimicImageRunner(BaseImageRunner):
         n_envs=None,
         env_name="Square_D0",
         rotation_rep="rotation_6d",
+        if_mask=False,
     ):
         super().__init__(output_dir)
 
@@ -95,6 +97,12 @@ class RobomimicImageRunner(BaseImageRunner):
 
         def env_fn():
             robomimic_env = create_env(env_meta=env_meta, shape_meta=shape_meta)
+            # env_interface = make_interface(
+            #     name=env_interface_name,
+            #     interface_type=env_interface_type,
+            #     # NOTE: env_interface takes underlying simulation environment, not robomimic wrapper
+            #     env=robomimic_env.base_env,
+            # )
             # Robosuite's hard reset causes excessive memory consumption.
             # Disabled to run more envs.
             # https://github.com/ARISE-Initiative/robosuite/blob/92abf5595eddb3a845cd1093703e5a3ccd01e77e/robosuite/environments/base.py#L247-L248
@@ -106,6 +114,7 @@ class RobomimicImageRunner(BaseImageRunner):
                         shape_meta=shape_meta,
                         init_state=None,
                         render_obs_key=render_obs_key,
+                        if_mask=if_mask
                     ),
                     video_recoder=VideoRecorder.create_h264(
                         fps=fps,
@@ -138,6 +147,7 @@ class RobomimicImageRunner(BaseImageRunner):
                         shape_meta=shape_meta,
                         init_state=None,
                         render_obs_key=render_obs_key,
+                        if_mask=if_mask
                     ),
                     video_recoder=VideoRecorder.create_h264(
                         fps=fps,

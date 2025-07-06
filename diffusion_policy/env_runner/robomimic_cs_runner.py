@@ -74,6 +74,7 @@ class RobomimicImageRunner(BaseImageRunner):
         n_envs=None,
         env_name="Square_D0",
         rotation_rep="rotation_6d",
+        if_mask=False,
     ):
         super().__init__(output_dir)
 
@@ -109,6 +110,7 @@ class RobomimicImageRunner(BaseImageRunner):
                         shape_meta=shape_meta,
                         init_state=None,
                         render_obs_key=render_obs_key,
+                        if_mask=if_mask
                     ),
                     video_recoder=VideoRecorder.create_h264(
                         fps=fps,
@@ -141,6 +143,7 @@ class RobomimicImageRunner(BaseImageRunner):
                         shape_meta=shape_meta,
                         init_state=None,
                         render_obs_key=render_obs_key,
+                        if_mask=if_mask
                     ),
                     video_recoder=VideoRecorder.create_h264(
                         fps=fps,
@@ -289,13 +292,6 @@ class RobomimicImageRunner(BaseImageRunner):
             )
 
             done = False
-            # # print(n_envs)
-            # act = [-8.80951258e-02, -1.66255592e-03,  1.02622731e+00,  2.14341831e+00,2.09654188e+00,  1.86019585e-01,-1]
-
-            # # 扩展成 (n_envs, n_action_steps, 7) 的形状
-            # expanded_action = np.tile(act, (n_envs, self.n_action_steps, 1))
-
-            # env.step(expanded_action)
 
             while not done:
                 # create obs dict

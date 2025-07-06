@@ -49,6 +49,7 @@ env_runner:
   n_envs: 28
   env_name: ${task.task_name}
   rotation_rep: *rotation_rep
+  if_mask: False
 # evaluation at this config requires a 16 core 64GB instance.
 
 dataset:

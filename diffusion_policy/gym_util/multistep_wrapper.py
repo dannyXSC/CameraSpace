@@ -38,18 +38,11 @@ def dict_take_last_n(x, n):
     return result
 
 def aggregate(data, method='max'):
-    if method == 'max':
-        # equivalent to any
-        return np.max(data)
-    elif method == 'min':
-        # equivalent to all
-        return np.min(data)
-    elif method == 'mean':
-        return np.mean(data)
-    elif method == 'sum':
-        return np.sum(data)
-    else:
-        raise NotImplementedError()
+    data = np.array(data)
+    if len(data.shape) > 1:  # 如果是多维数组
+        return getattr(np, method)(data, axis=0)  # 对每个维度进行聚合
+    else:  # 如果是一维数组
+        return getattr(np, method)(data)
 
 def stack_last_n_obs(all_obs, n_steps):
     assert(len(all_obs) > 0)
@@ -107,7 +100,7 @@ class MultiStepWrapper(gym.Wrapper):
                 # termination
                 break
             observation, reward, done, info = super().step(act)
-
+            
             self.obs.append(observation)
             self.reward.append(reward)
             if (self.max_episode_steps is not None) \
@@ -160,3 +153,35 @@ class MultiStepWrapper(gym.Wrapper):
         for k, v in self.info.items():
             result[k] = list(v)
         return result
+
+
+# class MultiStepStageRewardWrapper(MultiStepWrapper):
+#     def __init__(self, env, n_obs_steps, n_action_steps, max_episode_steps=None, reward_agg_method='max'):
+#         super().__init__(env, n_obs_steps, n_action_steps, max_episode_steps, reward_agg_method)
+    
+#     def step(self, action):
+#         """
+#         actions: (n_action_steps,) + action_shape
+#         """
+#         for act in action:
+#             if len(self.done) > 0 and self.done[-1]:
+#                 # termination
+#                 break
+#             observation, reward, done, info = super().step(act)
+            
+#             self.obs.append(observation)
+#             self.reward.append(reward)
+#             if (self.max_episode_steps is not None) \
+#                 and (len(self.reward) >= self.max_episode_steps):
+#                 # truncation
+#                 done = True
+#             self.done.append(done)
+#             self._add_info(info)
+
+#         observation = self._get_obs(self.n_obs_steps)
+#         reward = aggregate(self.reward, self.reward_agg_method)
+#         done = aggregate(self.done, 'max')
+#         info = dict_take_last_n(self.info, self.n_obs_steps)
+#         return observation, reward, done, info
+        
+

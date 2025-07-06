@@ -224,7 +224,8 @@ def generate_dataset(
 
     # env args: don't use image obs when writing debug video
     use_image_obs = ((mg_config.obs.collect_obs and (len(mg_config.obs.camera_names) > 0)) if not write_video else False)
-    use_depth_obs = False
+    # use_depth_obs = False
+    use_depth_obs = True
     
     # simulation environment
     env = RobomimicUtils.create_env(

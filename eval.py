@@ -27,7 +27,9 @@ from omegaconf import OmegaConf
 @click.option("-d", "--device", default="cuda:0")
 @click.option("-t", "--task", default="Square_D0")
 @click.option("-ms", "--max_steps", default=400)
-def main(checkpoint, output_dir, device, task, max_steps):
+@click.option("-r", "--runner", default=None)
+@click.option("-m", "--if_mask", default=False, is_flag=True, help="Enable mask functionality")
+def main(checkpoint, output_dir, device, task, max_steps, runner, if_mask):
     if os.path.exists(output_dir):
         click.confirm(
             f"Output path {output_dir} already exists! Overwrite?", abort=True
@@ -35,6 +37,7 @@ def main(checkpoint, output_dir, device, task, max_steps):
     pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     # load checkpoint
+    print(checkpoint)
     payload = torch.load(open(checkpoint, "rb"), pickle_module=dill)
     cfg = payload["cfg"]
     # allow OmegaConf to modify cfg
@@ -57,6 +60,10 @@ def main(checkpoint, output_dir, device, task, max_steps):
     # set desire task
     cfg.task.env_runner["env_name"] = task
     cfg.task.env_runner["max_steps"] = max_steps
+    cfg.task.env_runner["if_mask"] = if_mask
+    if runner is not None:
+        cfg.task.env_runner["_target_"]=runner
+        # diffusion_policy.env_runner.robomimic_image_stage_runner.RobomimicImageStageRunner
     env_runner_cfg = {**cfg.task.env_runner}
     env_runner = hydra.utils.instantiate(env_runner_cfg, output_dir=output_dir)
     runner_log = env_runner.run(policy)

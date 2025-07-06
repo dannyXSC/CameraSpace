@@ -430,13 +430,13 @@ def _convert_h2r_to_replay(
                 compressor=this_compressor,
                 dtype=np.uint8,
             )
-            cond_arr = data_group.require_dataset(
-                name="condition",
-                shape=(n_steps, h, w, c),
-                chunks=(1, h, w, c),
-                compressor=this_compressor,
-                dtype=np.uint8,
-            )
+            # cond_arr = data_group.require_dataset(
+            #     name="condition",
+            #     shape=(n_steps, h, w, c),
+            #     chunks=(1, h, w, c),
+            #     compressor=this_compressor,
+            #     dtype=np.uint8,
+            # )
 
             for episode_idx, dataset_path in enumerate(dataset_path_list):
                 with h5py.File(dataset_path, "r") as file:
@@ -467,11 +467,11 @@ def _convert_h2r_to_replay(
                                 img_copy, robot_arr, zarr_idx, robot_video, hdf5_idx
                             )
                         )
-                        futures.add(
-                            executor.submit(
-                                img_copy, cond_arr, zarr_idx, robot_video, robot_video.shape[0] -1
-                            )
-                        )
+                        # futures.add(
+                        #     executor.submit(
+                        #         img_copy, cond_arr, zarr_idx, robot_video, robot_video.shape[0] -1
+                        #     )
+                        # )
             completed, futures = concurrent.futures.wait(futures)
             for f in completed:
                 if not f.result():

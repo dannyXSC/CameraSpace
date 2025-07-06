@@ -1,0 +1,136 @@
+defaults:
+  - _self_
+  - task: mimicgen_hybrid_template
+
+name: finetune_diffusion_transformer_hybrid
+_target_: diffusion_policy.workspace.finetune_diffusion_transformer_hybrid_workspace.FinetuneDiffusionTransformerHybridWorkspace
+
+# 预训练模型路径
+pretrained_path: "/home/ubuntu/danny/diffusion_policy/data/outputs/2025.06.03/13.03.29_train_diffusion_transformer_hybrid_mug_hybrid_multiposition/checkpoints/epoch=0400-test_mean_score=0.440.ckpt"
+
+task_name: ${task.name}
+shape_meta: ${task.shape_meta}
+exp_name: "finetune"
+
+# horizon: 20
+horizon: 10
+# n_obs_steps: 8
+n_obs_steps: 2
+# n_action_steps: 16
+n_action_steps: 8
+n_latency_steps: 0
+dataset_obs_steps: ${n_obs_steps}
+past_action_visible: False
+keypoint_visible_rate: 1.0
+obs_as_cond: True
+
+policy:
+  _target_: diffusion_policy.policy.diffusion_transformer_hybrid_image_policy.DiffusionTransformerHybridImagePolicy
+
+  shape_meta: ${shape_meta}
+  
+  noise_scheduler:
+    _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
+    num_train_timesteps: 100
+    beta_start: 0.0001
+    beta_end: 0.02
+    beta_schedule: squaredcos_cap_v2
+    variance_type: fixed_small
+    clip_sample: True
+    prediction_type: epsilon
+
+  horizon: ${horizon}
+  n_action_steps: ${eval:'${n_action_steps}+${n_latency_steps}'}
+  n_obs_steps: ${n_obs_steps}
+  num_inference_steps: 100
+
+  crop_shape: [76, 76]
+  obs_encoder_group_norm: True
+  eval_fixed_crop: True
+
+  n_layer: 8
+  n_cond_layers: 0
+  n_head: 4
+  n_emb: 256
+  p_drop_emb: 0.0
+  p_drop_attn: 0.3
+  causal_attn: True
+  time_as_cond: True
+  obs_as_cond: ${obs_as_cond}
+
+ema:
+  _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
+  update_after_step: 0
+  inv_gamma: 1.0
+  power: 0.75
+  min_value: 0.0
+  max_value: 0.9999
+
+dataloader:
+  batch_size: 32  # 微调时使用较小的batch size
+  num_workers: 8
+  shuffle: True
+  pin_memory: True
+  persistent_workers: False
+
+val_dataloader:
+  batch_size: 32
+  num_workers: 8
+  shuffle: False
+  pin_memory: True
+  persistent_workers: False
+
+optimizer:
+  transformer_weight_decay: 1.0e-4  # 微调时使用较小的权重衰减
+  obs_encoder_weight_decay: 1.0e-6
+  learning_rate: 5.0e-5  # 微调时使用较小的学习率
+  betas: [0.9, 0.95]
+
+training:
+  device: "cuda:0"
+  seed: 42
+  debug: False
+  resume: True
+  lr_scheduler: cosine
+  lr_warmup_steps: 100  # 微调时使用较少的预热步数
+  num_epochs: 3050  # 微调时使用较少的训练轮数
+  gradient_accumulate_every: 1
+  use_ema: True
+  rollout_every: 10  # 更频繁地进行rollout评估
+  checkpoint_every: 10
+  val_every: 1
+  sample_every: 5
+  max_train_steps: null
+  max_val_steps: null
+  tqdm_interval_sec: 1.0
+
+logging:
+  project: diffusion_policy_finetune
+  resume: True
+  mode: online
+  name: ${now:%Y.%m.%d}/${now:%H.%M.%S}_${task.max_samples}
+  tags: ["${name}", "${task_name}", "${exp_name}"]
+  id: null
+  group: null
+
+checkpoint:
+  topk:
+    monitor_key: test_mean_score
+    mode: max
+    k: 20  # 保存较少的检查点
+    format_str: 'epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt'
+  save_last_ckpt: True
+  save_last_snapshot: False
+
+multi_run:
+  run_dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}
+  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_${name}_${task_name}
+
+hydra:
+  job:
+    override_dirname: ${name}
+  run:
+    dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}
+  sweep:
+    dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}
+    subdir: ${hydra.job.num} 

@@ -107,7 +107,7 @@ class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
             )
 
         obs_encoder = policy.nets['policy'].nets['encoder'].nets['obs']
-        
+                
         if obs_encoder_group_norm:
             # replace batch norm with group norm
             replace_submodules(
@@ -326,7 +326,8 @@ class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
         if self.obs_as_cond:
             # reshape B, T, ... to B*T
             this_nobs = dict_apply(nobs, 
-                lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
+                lambda x: x[:,:To,...].reshape(-1,*x.shape[2:])) 
+            # 这里拿出来处理一下
             nobs_features = self.obs_encoder(this_nobs)
             # reshape back to B, T, Do
             cond = nobs_features.reshape(batch_size, To, -1)
@@ -382,4 +383,6 @@ class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
         loss = loss * loss_mask.type(loss.dtype)
         loss = reduce(loss, 'b ... -> b (...)', 'mean')
         loss = loss.mean()
+        
+        # if agentview_image in obs
         return loss
