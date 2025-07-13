@@ -291,4 +291,3 @@ def main(ckpt, target, steps_per_inference, frequency, device):
 # %%
 if __name__ == "__main__":
     main()
-recorded_action

@@ -29,7 +29,10 @@ from omegaconf import OmegaConf
 @click.option("-ms", "--max_steps", default=400)
 @click.option("-r", "--runner", default=None)
 @click.option("-m", "--if_mask", default=False, is_flag=True, help="Enable mask functionality")
-def main(checkpoint, output_dir, device, task, max_steps, runner, if_mask):
+@click.option("-rt", "--robot_type", default=None)
+@click.option("-gt", "--gripper_type", default=None)
+@click.option("-ds", "--dataset", default=None)
+def main(checkpoint, output_dir, device, task, max_steps, runner, if_mask, robot_type, gripper_type, dataset):
     if os.path.exists(output_dir):
         click.confirm(
             f"Output path {output_dir} already exists! Overwrite?", abort=True
@@ -61,9 +64,16 @@ def main(checkpoint, output_dir, device, task, max_steps, runner, if_mask):
     cfg.task.env_runner["env_name"] = task
     cfg.task.env_runner["max_steps"] = max_steps
     cfg.task.env_runner["if_mask"] = if_mask
+    if robot_type is not None:
+        cfg.task.env_runner["robot_type"] = robot_type
+    if gripper_type is not None:
+        cfg.task.env_runner["gripper_type"] = gripper_type
+    if dataset is not None:
+        cfg.task.env_runner["dataset_path"] = dataset
     if runner is not None:
         cfg.task.env_runner["_target_"]=runner
         # diffusion_policy.env_runner.robomimic_image_stage_runner.RobomimicImageStageRunner
+    
     env_runner_cfg = {**cfg.task.env_runner}
     env_runner = hydra.utils.instantiate(env_runner_cfg, output_dir=output_dir)
     runner_log = env_runner.run(policy)

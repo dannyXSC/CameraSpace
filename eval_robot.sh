@@ -132,28 +132,19 @@ base_dir="data/eval"
 # 定义评估配置
 declare -A configs=(
     ["origin_delta"]="cuda:0 $task_name"
-    ["left_delta"]="cuda:1 ${task_name}_L"
-    ["right_delta"]="cuda:2 ${task_name}_R"
-    ["leftfront_delta"]="cuda:3 ${task_name}_LF"
-    ["rightfront_delta"]="cuda:4 ${task_name}_RF"
-    ["rightrotation_delta"]="cuda:5 ${task_name}_R_R0"
-    ["leftrotation_delta"]="cuda:6 ${task_name}_L_R0"
-
-
-    # ["origin_delta"]="cuda:0 $task_name"
-    # ["origin_cs"]="cuda:1 $task_name"
-    # ["left_delta"]="cuda:2 ${task_name}_L"
-    # ["left_cs"]="cuda:3 ${task_name}_L"
-    # ["right_delta"]="cuda:4 ${task_name}_R"
-    # ["right_cs"]="cuda:5 ${task_name}_R"
-    # ["leftfront_delta"]="cuda:6 ${task_name}_LF"
-    # ["leftfront_cs"]="cuda:7 ${task_name}_LF"
-    # ["rightfront_delta"]="cuda:0 ${task_name}_RF"
-    # ["rightfront_cs"]="cuda:1 ${task_name}_RF"
-    # ["rightrotation_delta"]="cuda:2 ${task_name}_R_R0"
-    # ["rightrotation_cs"]="cuda:3 ${task_name}_R_R0"
-    # ["leftrotation_delta"]="cuda:4 ${task_name}_L_R0"
-    # ["leftrotation_cs"]="cuda:5 ${task_name}_L_R0"
+    ["origin_cs"]="cuda:1 $task_name"
+    ["left_delta"]="cuda:2 ${task_name}_L"
+    ["left_cs"]="cuda:3 ${task_name}_L"
+    ["right_delta"]="cuda:4 ${task_name}_R"
+    ["right_cs"]="cuda:5 ${task_name}_R"
+    ["leftfront_delta"]="cuda:6 ${task_name}_LF"
+    ["leftfront_cs"]="cuda:7 ${task_name}_LF"
+    ["rightfront_delta"]="cuda:0 ${task_name}_RF"
+    ["rightfront_cs"]="cuda:1 ${task_name}_RF"
+    ["rightrotation_delta"]="cuda:2 ${task_name}_R_R0"
+    ["rightrotation_cs"]="cuda:3 ${task_name}_R_R0"
+    ["leftrotation_delta"]="cuda:4 ${task_name}_L_R0"
+    ["leftrotation_cs"]="cuda:5 ${task_name}_L_R0"
     # ["right1_delta"]="cuda:6 ${task_name}_R1"
     # ["right1_cs"]="cuda:7 ${task_name}_R1"
     # ["left1_delta"]="cuda:0 ${task_name}_L1"
@@ -238,17 +229,8 @@ for dir in "${!configs[@]}"; do
         cmd="$cmd -m"
     fi
     
-    # 添加 robot_type 参数（如果指定了）
-    if [ ! -z "$robot_type" ]; then
-        cmd="$cmd --robot_type $robot_type"
-        echo "添加 robot_type: $robot_type"
-    fi
-    
-    # 添加 gripper_type 参数（如果指定了）
-    if [ ! -z "$gripper_type" ]; then
-        cmd="$cmd --gripper_type $gripper_type"
-        echo "添加 gripper_type: $gripper_type"
-    fi
+    cmd="$cmd --robot_type IIWA"
+    cmd="$cmd --gripper_type PandaGripper"
     
     echo "执行命令: $cmd"
     MUJOCO_EGL_DEVICE_ID=$egl_id nohup $cmd > "$model_dir/log/${task_name}_${dir}_$ckpt_num.log" 2>&1 &

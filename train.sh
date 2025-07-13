@@ -112,14 +112,14 @@ nohup python train.py --config-dir=./diffusion_policy/config \
     hydra.run.dir='data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}' > "$log_dir/delta.log" 2>&1 &
 
 # 运行 cs 模型训练
-echo "启动 cs 模型训练..."
-nohup python train.py --config-dir=./diffusion_policy/config \
-    --config-name=train_diffusion_transformer_hybrid_workspace.yaml \
-    task="$cs_template" \
-    training.seed=42 training.device="$cs_device" \
-    task.name="${name}_cs" task.task_name="$task_name" \
-    task.dataset_path="$dataset_path" \
-    hydra.run.dir='data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}_cs' > "$log_dir/cs.log" 2>&1 &
+# echo "启动 cs 模型训练..."
+# nohup python train.py --config-dir=./diffusion_policy/config \
+#     --config-name=train_diffusion_transformer_hybrid_workspace.yaml \
+#     task="$cs_template" \
+#     training.seed=42 training.device="$cs_device" \
+#     task.name="${name}_cs" task.task_name="$task_name" \
+#     task.dataset_path="$dataset_path" \
+#     hydra.run.dir='data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}_cs' > "$log_dir/cs.log" 2>&1 &
 
 echo "训练任务已在后台启动。"
 echo "你可以通过以下命令查看任务状态："

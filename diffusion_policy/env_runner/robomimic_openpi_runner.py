@@ -100,6 +100,8 @@ class RobomimicOpenPIRunner(BaseImageRunner):
             env_meta["env_kwargs"]["controller_configs"]["control_delta"] = False
             rotation_transformer = RotationTransformer("axis_angle", rotation_rep)
 
+        print(f"{if_mask=}")
+
         def env_fn():
             robomimic_env = create_env(env_meta=env_meta, shape_meta=shape_meta)
             # env_interface = make_interface(

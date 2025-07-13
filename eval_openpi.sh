@@ -3,7 +3,7 @@
 # 检查参数
 if [ $# -lt 1 ]; then
     echo "使用方法:"
-    echo "运行评估: ./eval_openpi.sh <task_name> "
+    echo "运行评估: ./eval_openpi.sh <task_name> [--if_mask]"
     echo "停止评估: ./eval_openpi.sh stop"
     exit 1
 fi
@@ -27,32 +27,58 @@ if [ "$1" == "stop" ]; then
 fi
 
 # 检查运行评估的参数
-if [ $# -ne 1 ]; then
-    echo "运行评估需要一个参数: ./eval_openpi.sh <task_name>"
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+    echo "运行评估需要一个或两个参数: ./eval_openpi.sh <task_name> [--if_mask]"
     echo "例如: ./eval_openpi.sh MugCleanup_D0"
+    echo "例如: ./eval_openpi.sh MugCleanup_D0 --if_mask"
     exit 1
 fi
 
 task_name=$1
+if_mask_mode=false
+
+map_egl_device_id() {
+    case $1 in
+        0) echo 3 ;;
+        1) echo 2 ;;
+        2) echo 1 ;;
+        3) echo 0 ;;
+        4) echo 7 ;;
+        5) echo 6 ;;
+        6) echo 5 ;;
+        7) echo 4 ;;
+        *) echo $1 ;;
+    esac
+}
+
+# 检查参数
+for arg in "$@"; do
+    if [ "$arg" == "--if_mask" ]; then
+        if_mask_mode=true
+    fi
+done
 
 echo "运行OpenPI评估任务: $task_name"
+if [ "$if_mask_mode" = true ]; then
+    echo "if_mask模式: 启用"
+fi
 
 # 创建必要的目录
 base_dir="data/eval_openpi"
 
 # 定义评估配置 - OpenPI使用不同的位置配置
 declare -A configs=(
-    ["origin_delta"]="cuda:0 $task_name"
-    ["left_delta"]="cuda:1 ${task_name}_L"
-    ["right_delta"]="cuda:2 ${task_name}_R"
-    ["leftfront_delta"]="cuda:3 ${task_name}_LF"
-    ["rightfront_delta"]="cuda:4 ${task_name}_RF"
-    ["rightrotation_delta"]="cuda:5 ${task_name}_R_R0"
-    ["leftrotation_delta"]="cuda:6 ${task_name}_L_R0"
-    ["right1_delta"]="cuda:0 ${task_name}_R1"
-    ["left1_delta"]="cuda:1 ${task_name}_L1"
-    ["right1rotation_delta"]="cuda:2 ${task_name}_R1_R0"
-    ["left1rotation_delta"]="cuda:3 ${task_name}_L1_R0"
+    ["origin_delta"]="0 $task_name"
+    ["left_delta"]="1 ${task_name}_L"
+    ["right_delta"]="2 ${task_name}_R"
+    ["leftfront_delta"]="3 ${task_name}_LF"
+    ["rightfront_delta"]="0 ${task_name}_RF"
+    ["rightrotation_delta"]="1 ${task_name}_R_R0"
+    ["leftrotation_delta"]="2 ${task_name}_L_R0"
+    # ["right1_delta"]="cuda:3 ${task_name}_R1"
+    # ["left1_delta"]="cuda:3 ${task_name}_L1"
+    # ["right1rotation_delta"]="cuda:4 ${task_name}_R1_R0"
+    # ["left1rotation_delta"]="cuda:3 ${task_name}_L1_R0"
 )
 
 # 创建目录并删除旧的输出目录
@@ -83,6 +109,7 @@ done
 for dir in "${!configs[@]}"; do
     device_task=(${configs[$dir]})
     device=${device_task[0]}
+    device_id=$(map_egl_device_id $device)
     task=${device_task[1]}
     
     # 提取位置名称
@@ -103,9 +130,10 @@ for dir in "${!configs[@]}"; do
     # 设置环境变量来覆盖env_name
     cmd="$cmd env_runner.env_name=$task"
     cmd="$cmd env_runner.output_dir=$eval_dir"
+    cmd="$cmd env_runner.if_mask=$if_mask_mode"
     
     echo "执行命令: $cmd"
-    nohup $cmd > "$model_dir/log/${task_name}_${dir}.log" 2>&1 &
+    MUJOCO_EGL_DEVICE_ID=$device_id nohup $cmd > "$model_dir/log/${task_name}_${dir}.log" 2>&1 &
 done
 
 echo "所有OpenPI任务已在后台启动。"

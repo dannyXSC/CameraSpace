@@ -22,7 +22,7 @@ shape_meta: &shape_meta
 env_runner:
   _target_: diffusion_policy.env_runner.robomimic_openpi_runner.RobomimicOpenPIRunner
   output_dir: 
-  dataset_path: /tmp/core_datasets/mug_cleanup/demo_src_mug_cleanup_task_D0/demo.hdf5
+  dataset_path: /data/mimicgen/demo.hdf5
   shape_meta: *shape_meta
   # costs 1GB per env
   n_train: 6

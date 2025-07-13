@@ -73,6 +73,8 @@ class RobomimicImageRunner(BaseImageRunner):
         tqdm_interval_sec=5.0,
         n_envs=None,
         env_name="Square_D0",
+        robot_type=None,
+        gripper_type=None,
         rotation_rep="rotation_6d",
         if_mask=False,
     ):
@@ -96,7 +98,12 @@ class RobomimicImageRunner(BaseImageRunner):
         if abs_action:
             env_meta["env_kwargs"]["controller_configs"]["control_delta"] = False
             rotation_transformer = RotationTransformer("matrix", rotation_rep)
-
+        if robot_type is not None:
+            env_meta["env_kwargs"]["robots"] = [robot_type]
+            print(f"robot_type: {robot_type}")
+        if gripper_type is not None:
+            env_meta["env_kwargs"]["gripper_types"] = [gripper_type]
+            print(f"gripper_type: {gripper_type}")
         def env_fn():
             robomimic_env = create_env(env_meta=env_meta, shape_meta=shape_meta)
             # Robosuite's hard reset causes excessive memory consumption.

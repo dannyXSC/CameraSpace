@@ -49,7 +49,7 @@ def foreground_mask(env, camera_name = None):
     for y in range(seg.shape[0]):
         for x in range(seg.shape[1]):
             id_value = seg[y, x, 0]
-            if id_value == 5 or id_value == 0 or mapping.get(id_value, -1) in ["RethinkMount", "Panda"]:
+            if id_value == 5 or id_value == 0 or mapping.get(id_value, -1) in ["RethinkMount", "Panda", "IIWA"]:
                 color_seg[y, x] = (0, 0, 0)
             else:
                 color_seg[y, x] = (1, 1, 1)

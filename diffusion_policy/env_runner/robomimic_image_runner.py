@@ -72,6 +72,8 @@ class RobomimicImageRunner(BaseImageRunner):
         n_envs=None,
         env_name="Square_D0",
         rotation_rep="rotation_6d",
+        robot_type=None,
+        gripper_type=None,
         if_mask=False,
     ):
         super().__init__(output_dir)
@@ -94,6 +96,15 @@ class RobomimicImageRunner(BaseImageRunner):
         if abs_action:
             env_meta["env_kwargs"]["controller_configs"]["control_delta"] = False
             rotation_transformer = RotationTransformer("axis_angle", rotation_rep)
+
+        if robot_type is not None:
+            env_meta["env_kwargs"]["robots"] = [robot_type]
+            print(f"robot_type: {robot_type}")
+        if gripper_type is not None:
+            env_meta["env_kwargs"]["gripper_types"] = [gripper_type]
+            print(f"gripper_type: {gripper_type}")
+
+
 
         def env_fn():
             robomimic_env = create_env(env_meta=env_meta, shape_meta=shape_meta)
