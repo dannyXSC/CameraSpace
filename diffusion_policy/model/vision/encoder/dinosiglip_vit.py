@@ -60,12 +60,12 @@ class DinoSigLIPViTBackbone(VisionBackbone):
         # Monkey-Patch the `forward()` function of the featurizers to ensure FSDP-compatibility
         #   => Note: By default set `get_intermediate_layers` to return the *SECOND-TO-LAST* layer patches!
         #   => TODO (siddk) Remove after resolution of https://github.com/pytorch/pytorch/issues/109385
-        self.dino_featurizer.forward = unpack_tuple(
-            partial(self.dino_featurizer.get_intermediate_layers, n={len(self.dino_featurizer.blocks) - 2})
-        )
-        self.siglip_featurizer.forward = unpack_tuple(
-            partial(self.siglip_featurizer.get_intermediate_layers, n={len(self.siglip_featurizer.blocks) - 2})
-        )
+        # self.dino_featurizer.forward = unpack_tuple(
+        #     partial(self.dino_featurizer.get_intermediate_layers, n={len(self.dino_featurizer.blocks) - 2})
+        # )
+        # self.siglip_featurizer.forward = unpack_tuple(
+        #     partial(self.siglip_featurizer.get_intermediate_layers, n={len(self.siglip_featurizer.blocks) - 2})
+        # )
 
         # Get Configs for _both_ Featurizers =>> Note :: Override default image size for larger resolution models
         self.dino_data_cfg = timm.data.resolve_model_data_config(self.dino_featurizer)
@@ -143,8 +143,7 @@ class DinoSigLIPViTBackbone(VisionBackbone):
         """Runs the transformed image/pixel tensors through each vision backbone, returning concatenated patches."""
         dino_patches = self.dino_featurizer(pixel_values["dino"])
         siglip_patches = self.siglip_featurizer(pixel_values["siglip"])
-
-        return torch.cat([dino_patches, siglip_patches], dim=2)
+        return torch.cat([dino_patches, siglip_patches], dim=-1)
 
     @property
     def default_image_resolution(self) -> Tuple[int, int, int]:

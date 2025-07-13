@@ -102,8 +102,8 @@ training:
   use_ema: True
   # training loop control
   # in epochs
-  rollout_every: 20
-  checkpoint_every: 20
+  rollout_every: 5
+  checkpoint_every: 5
   val_every: 1
   sample_every: 5
   # steps per epoch
@@ -116,6 +116,7 @@ logging:
   project: diffusion_policy_debug
   resume: True
   mode: online
+  # mode: offline
   name: ${now:%Y.%m.%d-%H.%M.%S}_${name}_${task_name}
   tags: ["${name}", "${task_name}", "${exp_name}"]
   id: null

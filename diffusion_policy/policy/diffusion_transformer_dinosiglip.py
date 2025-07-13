@@ -29,13 +29,18 @@ class ObsEncoder(nn.Module):
             default_image_size=224
         )
         self.image_transform = self.vision_backbone.get_image_transform()
-        self.output_shape = self.vision_backbone.embed_dim
+        self.output_shape = self.vision_backbone.embed_dim * 2
+        
+        for param in self.vision_backbone.parameters():
+            param.requires_grad = False
+
     
     def forward(self, obs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        import pdb; pdb.set_trace()
-        main_obs = obs['agentview_image'] # (B, 3, 256, 256)
-        wrist_obs = obs['robot0_eye_in_hand_image']
-        return self.vision_backbone(main_obs)
+        pixel_main = self.image_transform(obs['agentview_image'])
+        pixel_wrist = self.image_transform(obs['robot0_eye_in_hand_image'])
+        feature_main = self.vision_backbone(pixel_main)
+        feature_wrist = self.vision_backbone(pixel_wrist)
+        return torch.cat([feature_main, feature_wrist], dim=-1)
 
 class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
     def __init__(self, 
